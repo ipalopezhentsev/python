@@ -1,5 +1,4 @@
-#!/usr/local/bin/python3
-import sys
+#!/usr/bin/env python3
 from PIL import Image, ImageDraw, ImageColor
 
 WIDTH = 2
@@ -23,7 +22,8 @@ def gen_circles(size, n, step):
 
 def draw_circle(draw, center, radius, color):
     (c_x, c_y) = center
-    draw.ellipse([(c_x - radius, c_y - radius), (c_x + radius, c_y + radius)], outline=color, width=WIDTH)
+    draw.ellipse([(c_x - radius, c_y - radius), (c_x + radius, c_y + radius)],
+                 outline=color, width=WIDTH)
 
 
 def main():

@@ -1,6 +1,5 @@
-#!/usr/local/bin/python3
-import sys
-from PIL import Image, ImageDraw, ImageColor
+#!/usr/bin/env python3
+from PIL import Image
 
 
 def main():
