@@ -1,0 +1,1 @@
+Downloads official rates from Russian Central Bank and sends email if there is a significant gap between today's and yesterday's rates

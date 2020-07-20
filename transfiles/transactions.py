@@ -1,3 +1,9 @@
+import logging
+import transfiles.logsetup
+
+logger = logging.getLogger(__name__)
+
+
 class Action:
     def pre_commit(self):
         """Do some action on file, in durable but revertible form (e.g. if your
@@ -26,32 +32,29 @@ def process_actions_atomically(actions):
     actions_for_rollback_on_error = []
     need_rollback = False
     for action in actions:
-        print(f'Precommitting {action}')
+        logger.info(f'Precommitting {action}')
         try:
-            """#we append before actually calling pre_commit() in order to allow this action 
+            """we append before actually calling pre_commit() in order to allow this action 
             to be rolled back too if it failed in the mid of precommit"""
             actions_for_rollback_on_error.append(action)
             action.pre_commit()
-            # should_fail = input("Simulate exception (Y/N)?")
-            # if should_fail.lower() == "y":
-            #     raise RuntimeError("Asked to fail")
         except BaseException as e:
-            print(f"Action {action} failed due to {e}, rolling back everything")
+            logger.error(f"Action {action} failed, rolling back everything", exc_info=e, stack_info=True)
             need_rollback = True
             break
     if need_rollback:
-        print("Performing rollback")
+        logger.info("Performing rollback")
         # we rollback most recent actions first
         for action in reversed(actions_for_rollback_on_error):
             try:
                 action.rollback()
             except BaseException as e:
-                print(f"Failed to rollback action {action} due to {e}, skipping it")
+                logger.error(f"Failed to rollback action {action}, skipping it", exc_info=e, stack_info=True)
     else:
-        print("All actions precommitted fine, committing")
+        logger.info("All actions precommitted fine, committing")
         for action in actions:
             try:
                 action.commit()
             except BaseException as e:
-                print(f"Failed to commit action {action} due to {e}, skipping it")
-    print("Done")
+                logger.error(f"Failed to commit action {action}, skipping it", exc_info=e, stack_info=True)
+    logger.info("Done")
