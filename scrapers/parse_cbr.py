@@ -3,16 +3,17 @@ from __future__ import annotations
 
 import sys
 from typing import List, MutableMapping, Dict, Mapping
-
 import requests
 import re
 import datetime
 import os
 import os.path
 import csv
-from bs4 import BeautifulSoup
+import argparse
 import smtplib
 from email.mime.text import MIMEText
+
+from bs4 import BeautifulSoup
 
 
 class RatesInfo:
@@ -122,9 +123,10 @@ def download_fresh_rates_by_dates(url, html_dump_filename: str) -> RatesTable:
     page = requests.get(url)
     soup = BeautifulSoup(page.content, 'html.parser')
     # encoding needed for saving of rouble sign
-    with open(html_dump_filename, 'w', encoding='utf-8') as html_file:
-        print(f'Dumping to {html_dump_filename}')
-        html_file.write(soup.prettify())
+    if html_dump_filename:
+        with open(html_dump_filename, 'w', encoding='utf-8') as html_file:
+            print(f'Dumping to {html_dump_filename}')
+            html_file.write(soup.prettify())
     indicators_parent = soup.find("div", class_="indicators")
     dates = find_dates(indicators_parent)
     return find_rates(dates, indicators_parent)
@@ -180,12 +182,27 @@ def prepare_mail_text(violating_rates: Mapping[CcyPair, RatesViolation], rel_eps
 
 
 def main() -> None:
-    script_dir = sys.path[0]
-    rates_history_filename = f"{script_dir}/rates.csv"
-    html_dump_filename = f"{script_dir}/cbr-{str(datetime.datetime.now()).replace(':', '.')}.html"
+    parser = argparse.ArgumentParser(description="Downloads official rates from Russian Central Bank and sends email "
+                                     "if there is a significant gap between today's and yesterday's rates",
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument("--dump-html", action="store_true", default=False,
+                        help="Dumps html page as it looked at time of parsing")
+    parser.add_argument("--rel-eps", type=float, default=0.01,
+                        help="Relative diff threshold between rate of yesterday "
+                             "and rate of today to consider sending warning email")
+    parser.add_argument("--email", default="root",
+                        help="E-mail address to which send warning mail in case rate jumps")
+    parser.add_argument("--rates-db", default="rates.csv",
+                        help="File to which the script will append new rates")
+    args = parser.parse_args()
+
+    script_dir = os.path.dirname(sys.argv[0])
+    rates_history_filename = os.path.join(script_dir, args.rates_db)
+    html_dump_filename = os.path.join(script_dir, f"cbr-{str(datetime.datetime.now()).replace(':', '.')}.html") \
+        if args.dump_html else None
     url = "https://cbr.ru"
-    email = "root"
-    rel_eps = 0.01
+    email = args.email
+    rel_eps = args.rel_eps
 
     print(f'Working dir: {os.getcwd()}')
     print(f'Script dir: {script_dir}')
@@ -201,9 +218,10 @@ def main() -> None:
         violating_rates = rates_by_dates_existing.find_violating_rates(rel_eps)
         header, msg = prepare_mail_text(violating_rates, rel_eps)
         if msg != "":
-            send_mail(email, header, msg)
+            print("Jump detected, going to send mail:")
             print(header)
             print(msg)
+            send_mail(email, header, msg)
         else:
             print("Skip sending mail, no rates jump")
     else:

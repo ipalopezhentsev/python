@@ -98,12 +98,19 @@ class ImportRawsActionsGenerator(FolderActionsGenerator):
 
 
 def main():
-    if len(sys.argv) != 2:
-        print(f"Usage: {os.path.basename(sys.argv[0])} <directory to process>")
-        sys.exit(1)
-    else:
-        process_tree(sys.argv[1],
-                     generate_actions=generate_actions_for_import_dslr_raws)
+    parser = argparse.ArgumentParser(
+        description="Takes photos (jpg, tiff, tiff-based raws (NEF, DNG, ...) from source dir "
+                    "and moves them to target dir into folders corresponding to date each "
+                    "picture was taken (obtained from EXIF data). If something goes wrong, "
+                    "rolls back all changes.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument("src_dir", help="source directory (with or without trailing slash)")
+    parser.add_argument("trg_dir", help="target directory (with or without trailing slash)")
+    parser.add_argument("-d", "--delete-src", action="store_true", help="remove source file after successful copying")
+    args = parser.parse_args()
+
+    dir_actions_generator = ImportRawsActionsGenerator(args.trg_dir, delete_src=args.delete_src)
+    process_tree(args.src_dir, generator=dir_actions_generator)
 
 
 if __name__ == "__main__":
