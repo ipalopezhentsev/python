@@ -117,7 +117,7 @@ class TestTransactions(unittest.TestCase):
         # but should not prevent calling commit on good action:
         good_action.commit.assert_called_once()
         """
-        Q: shouldn't bad_action.rollback called too?
+        Q: shouldn't bad_action.rollback be called too?
         A: I think no, it would violate rule that transaction is atomic.
         In most cases target action will be done on pre_commit() already, 
         so at worst we'll have some temporary leftover for being able to revert.
