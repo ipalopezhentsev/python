@@ -4,7 +4,6 @@ import requests
 import re
 import datetime
 import os
-from pathlib import Path
 import csv
 from bs4 import BeautifulSoup
 import smtplib
@@ -73,9 +72,8 @@ def download_fresh_rates_by_dates(url, html_dump_filename):
 
 
 def load_existing_rates(filename):
-    f = Path(filename)
     rates_by_dates = {}
-    if f.exists():
+    if os.path.exists(filename):
         with open(filename, 'r') as ff:
             reader = csv.reader(ff)
             for line in reader:
