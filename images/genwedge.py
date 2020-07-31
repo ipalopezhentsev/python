@@ -1,5 +1,4 @@
-#!/usr/local/bin/python3
-import sys
+#!/usr/bin/env python3
 from PIL import Image, ImageDraw, ImageColor
 
 WIDTH = 2
