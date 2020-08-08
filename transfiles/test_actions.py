@@ -8,6 +8,10 @@ class TestMoveAction(unittest.TestCase):
     def test_can_commit(self):
         with tempfile.TemporaryDirectory() as trg_dir:
             src_handle, src = tempfile.mkstemp()
+            # if we don't close it now, Windows will fail to remove/rename it,
+            # because it will be locked by our process. closing it doesn't remove
+            # it so we still have to remove it later.
+            os.close(src_handle)
             try:
                 self.assertTrue(os.path.exists(src))
                 filename = os.path.basename(src)
@@ -33,6 +37,7 @@ class TestMoveAction(unittest.TestCase):
     def test_can_rollback(self):
         with tempfile.TemporaryDirectory() as trg_dir:
             src_handle, src = tempfile.mkstemp()
+            os.close(src_handle)
             try:
                 self.assertTrue(os.path.exists(src))
                 filename = os.path.basename(src)
@@ -59,6 +64,7 @@ class TestMoveAction(unittest.TestCase):
             # add not existing intermediate dir to ensure it will be created
             trg_dir = os.path.join(trg_dir_base, "not_existing_dir")
             src_handle, src = tempfile.mkstemp()
+            os.close(src_handle)
             try:
                 self.assertTrue(os.path.exists(src))
                 filename = os.path.basename(src)
@@ -85,6 +91,7 @@ class TestCopyAction(unittest.TestCase):
     def test_can_commit(self):
         with tempfile.TemporaryDirectory() as trg_dir:
             src_handle, src = tempfile.mkstemp()
+            os.close(src_handle)
             try:
                 self.assertTrue(os.path.exists(src))
                 filename = os.path.basename(src)
@@ -106,6 +113,7 @@ class TestCopyAction(unittest.TestCase):
     def test_can_rollback(self):
         with tempfile.TemporaryDirectory() as trg_dir:
             src_handle, src = tempfile.mkstemp()
+            os.close(src_handle)
             try:
                 self.assertTrue(os.path.exists(src))
                 filename = os.path.basename(src)
