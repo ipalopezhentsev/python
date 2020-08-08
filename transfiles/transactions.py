@@ -41,7 +41,7 @@ def process_actions_atomically(actions):
             to be rolled back too if it failed in the mid of precommit"""
             actions_for_rollback_on_error.append(action)
             action.pre_commit()
-        except BaseException as e:
+        except Exception as e:
             logger.error(f"Action {action} failed, rolling back everything", exc_info=e, stack_info=True)
             need_rollback = True
             break
@@ -51,13 +51,13 @@ def process_actions_atomically(actions):
         for action in reversed(actions_for_rollback_on_error):
             try:
                 action.rollback()
-            except BaseException as e:
+            except Exception as e:
                 logger.error(f"Failed to rollback action {action}, skipping it", exc_info=e, stack_info=True)
     else:
         logger.info("All actions precommitted fine, committing")
         for action in actions:
             try:
                 action.commit()
-            except BaseException as e:
+            except Exception as e:
                 logger.error(f"Failed to commit action {action}, skipping it", exc_info=e, stack_info=True)
     logger.info("Done")

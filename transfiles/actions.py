@@ -24,7 +24,7 @@ class MoveAction(FileAction):
     def pre_commit(self):
         tmp_name = self.file + ".bak"
         if os.path.exists(tmp_name):
-            raise RuntimeError(f"Cannot rename as {tmp_name} already exists")
+            raise FileExistsError(f"Cannot rename as {tmp_name} already exists")
         logger.info(f"Renaming {self.file} to {tmp_name}")
         os.rename(self.file, tmp_name)
         self.__done_renaming = (self.file, tmp_name)
@@ -33,7 +33,7 @@ class MoveAction(FileAction):
         logger.info(f"Copying {tmp_name} to {self.trg_file}")
         if os.path.exists(self.trg_file):
             # otherwise shutil.copyfile() will just silently replace it
-            raise RuntimeError("File {0} already exists".format(self.trg_file))
+            raise FileExistsError("File {0} already exists".format(self.trg_file))
         os.makedirs(os.path.dirname(self.trg_file), exist_ok=True)
         shutil.copyfile(tmp_name, self.trg_file)
         logger.info("Done copying")
@@ -52,7 +52,7 @@ class MoveAction(FileAction):
             try:
                 logger.info(f"Removing {self.trg_file}")
                 os.remove(self.trg_file)
-            except BaseException as e:
+            except Exception as e:
                 logger.error(f"Error while removing {self.trg_file}", exc_info=e)
 
 
@@ -66,7 +66,7 @@ class CopyAction(FileAction):
 
     def pre_commit(self):
         if os.path.exists(self.trg_file):
-            raise RuntimeError(f"Cannot copy as {self.trg_file} already exists")
+            raise FileExistsError(f"Cannot copy as {self.trg_file} already exists")
         logger.info(f"Copying {self.file} to {self.trg_file}")
         os.makedirs(os.path.dirname(self.trg_file), exist_ok=True)
         shutil.copyfile(self.file, self.trg_file)
@@ -79,5 +79,5 @@ class CopyAction(FileAction):
         try:
             logger.info(f"Removing {self.trg_file}")
             os.remove(self.trg_file)
-        except BaseException as e:
+        except Exception as e:
             logger.error(f"Error while removing {self.trg_file}", exc_info=e)

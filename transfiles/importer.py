@@ -2,6 +2,7 @@ import datetime
 import os
 from typing import Sequence
 import argparse
+import logging
 
 import piexif
 
@@ -12,6 +13,7 @@ from transfiles.utils import get_fname_wo_extension
 import transfiles.logsetup
 
 raw_extensions = {"nef", "dng"}
+logger = logging.getLogger(__name__)
 
 
 class FolderActionsGenerator:
@@ -19,13 +21,17 @@ class FolderActionsGenerator:
         raise NotImplementedError
 
 
+def err_processor(exception: OSError):
+    logger.error("Skipping traversing file {0} due to error".format(exception.filename), exc_info=exception)
+
+
 def process_tree(path_to_process, *,
                  generator: FolderActionsGenerator,
                  process_actions=process_actions_atomically):
     if not os.path.isdir(path_to_process):
-        raise RuntimeError("path is not a directory")
+        raise NotADirectoryError(f"path {path_to_process} is not a directory")
     actions = []
-    for root, dirs, files in os.walk(path_to_process):
+    for root, dirs, files in os.walk(path_to_process, onerror=err_processor):
         print(f'Collecting actions for directory {root}:')
         actions_for_dir = generator.generate(root, dirs, files)
         actions.extend(actions_for_dir)
@@ -81,7 +87,7 @@ class ImportRawsActionsGenerator(FolderActionsGenerator):
 
             try:
                 date_taken = self.find_date_taken(os.path.join(root, raw_file))
-            except BaseException as e:
+            except Exception as e:
                 print("Cannot find date taken from EXIF of file {0} due to error {1}. Skipping it"
                       .format(raw_file, repr(e)))
                 continue
