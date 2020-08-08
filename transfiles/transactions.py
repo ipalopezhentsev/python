@@ -18,14 +18,17 @@ class Action:
         If all was good on precommit, just exit from the method.
         Then you will get either commit() or rollback() request depending on the
         outcome of other participants of a transaction"""
+        pass
 
     def commit(self):
         """Finally materialize the changes done on pre_commit(). Typically, no
         rollback is possible after it is done. E.g. if your action was about
         deleting a file, here you finally remove the temporarily renamed copy."""
+        pass
 
     def rollback(self):
         """Revert changes done on process(). Can be done only after pre_commit()."""
+        pass
 
 
 def process_actions_atomically(actions):

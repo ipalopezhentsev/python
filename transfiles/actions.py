@@ -16,7 +16,7 @@ class MoveAction(FileAction):
     def __init__(self, src_file, trg_file):
         FileAction.__init__(self, src_file)
         self.trg_file = trg_file
-        self.done_renaming = None
+        self.__done_renaming = None
 
     def __repr__(self) -> str:
         return f"MoveAction[from: {self.file}; to: {self.trg_file}]"
@@ -27,7 +27,7 @@ class MoveAction(FileAction):
             raise RuntimeError(f"Cannot rename as {tmp_name} already exists")
         logger.info(f"Renaming {self.file} to {tmp_name}")
         os.rename(self.file, tmp_name)
-        self.done_renaming = (self.file, tmp_name)
+        self.__done_renaming = (self.file, tmp_name)
         logger.info("Done renaming")
 
         logger.info(f"Copying {tmp_name} to {self.trg_file}")
@@ -39,14 +39,14 @@ class MoveAction(FileAction):
         logger.info("Done copying")
 
     def commit(self):
-        src_file, tmp_renamed_file = self.done_renaming
+        src_file, tmp_renamed_file = self.__done_renaming
         logger.info(f"Removing {tmp_renamed_file}")
         os.remove(tmp_renamed_file)
         logger.info("Done removing")
 
     def rollback(self):
-        if self.done_renaming:
-            src_file, tmp_renamed_file = self.done_renaming
+        if self.__done_renaming:
+            src_file, tmp_renamed_file = self.__done_renaming
             logger.info(f"Renaming {tmp_renamed_file} to {src_file}")
             os.rename(tmp_renamed_file, src_file)
             try:

@@ -16,6 +16,7 @@ class TestGroupBy(TestCase):
         res = group_by(items, proj)
         self.assertDictEqual(res, {})
 
+
 class TestGetFnameWoExtension(TestCase):
     def test_get_fname_wo_extension(self):
         f1 = "/Volumes/IlyaHDD/tmp/play/DSC_8670.NEF"
