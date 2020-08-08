@@ -14,7 +14,7 @@ class FileAction(Action):
 
 class MoveAction(FileAction):
     def __init__(self, src_file, trg_file):
-        FileAction.__init__(self, src_file)
+        super().__init__(src_file)
         self.trg_file = trg_file
         self.__done_renaming = None
 
@@ -58,7 +58,7 @@ class MoveAction(FileAction):
 
 class CopyAction(FileAction):
     def __init__(self, src_file, trg_file):
-        FileAction.__init__(self, src_file)
+        super().__init__(src_file)
         self.trg_file = trg_file
 
     def __repr__(self) -> str:
