@@ -73,8 +73,8 @@ class ImportRawsActionsGenerator(FolderActionsGenerator):
         # e.g raw file itself and its Lightroom sidecar: DSC_8670.NEF and DSC_8670.xmp
         photos_grouped_by_fname = utils.group_by(files, get_fname_wo_extension)
         # print(photos_grouped_by_fname)
-
         for base_fname, files_with_fname in photos_grouped_by_fname.items():
+            print(f"Processing {base_fname}: {files_with_fname}")
             is_raw_file = lambda fname: utils.get_extension(fname).lower() in raw_extensions
             raw_files = list(filter(is_raw_file, files_with_fname))
             num_raw_files_found = len(raw_files)
