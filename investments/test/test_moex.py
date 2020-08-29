@@ -1,12 +1,17 @@
 import unittest
 from datetime import date
+import os
+
 import investments.moex as m
 from investments.instruments import CouponScheduleEntry, AmortizationScheduleEntry
 
 
 class TestMoex(unittest.TestCase):
     def test_can_parse_bond(self):
-        with open("RU000A0JWSQ7.xml", "r", encoding="utf-8") as f:
+        # without abs path it cannot find file when running under unittest discover -
+        # its current dir is two levels higher
+        test_file_abs = os.path.join(os.path.dirname(__file__), "RU000A0JWSQ7.xml")
+        with open(test_file_abs, "r", encoding="utf-8") as f:
             xml = f.read()
         bond = m.parse_coupon_schedule_xml(xml)
         self.assertEqual(bond.isin, "RU000A0JWSQ7")
