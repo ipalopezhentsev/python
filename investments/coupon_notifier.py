@@ -2,66 +2,86 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from email.mime.text import MIMEText
-from email.utils import COMMASPACE, formatdate
+from email.utils import formatdate
 from email import encoders
-from typing import List
 import datetime
 import argparse
-import json
-import sys
+from typing import List
 
-import requests
-from bs4 import BeautifulSoup
+from icalendar import Calendar, Event, Alarm
 
-ISS_URL = "https://iss.moex.com/iss/"
+from investments.moex import load_bond
+from investments.instruments import CouponScheduleEntry, AmortizationScheduleEntry, Bond
 
-def old_main():
-    CRLF = "\r\n"
-    login = "iliks@mail.ru"
-    password = ""  # mail.ru
-    attendees = ["@mail.ru"]
-    organizer = "ORGANIZER;CN=organiser:mailto:iliks" + CRLF + " @mail.ru"
-    fro = "iliks@mail.ru"
 
-    ddtstart = datetime.datetime.now()
-    dtoff = datetime.timedelta(days=1)
-    dur = datetime.timedelta(hours=1)
-    ddtstart = ddtstart + dtoff
-    dtend = ddtstart + dur
-    dtstamp = datetime.datetime.now().strftime("%Y%m%dT%H%M%SZ")
-    dtstart = ddtstart.strftime("%Y%m%dT%H%M%SZ")
-    dtend = dtend.strftime("%Y%m%dT%H%M%SZ")
+def generate_event(subject: str, payment_date: datetime.date) -> Event:
+    evt = Event()
+    evt.add("summary", subject)
+    notification_time = datetime.time(11, 0)
+    payment_datetime = datetime.datetime.combine(payment_date, notification_time)
+    evt.add("dtstart", payment_datetime)
+    evt.add("dtend", payment_datetime + datetime.timedelta(hours=1))
+    evt.add("dtstamp", datetime.datetime.now())
+    alarm = Alarm()
+    alarm.add("trigger", datetime.timedelta(minutes=0))
+    evt.add_component(alarm)
+    return evt
 
-    description = "DESCRIPTION: test invitation from pyICSParser" + CRLF
-    attendee = ""
-    for att in attendees:
-        attendee += "ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-    PARTICIPANT;PARTSTAT=ACCEPTED;RSVP=TRUE" + CRLF + " ;CN=" + att + ";X-NUM-GUESTS=0:" + CRLF + " mailto:" + att + CRLF
-    ical = "BEGIN:VCALENDAR" + CRLF + "PRODID:pyICSParser" + CRLF + "VERSION:2.0" + CRLF + "CALSCALE:GREGORIAN" + CRLF
-    ical += "METHOD:REQUEST" + CRLF + "BEGIN:VEVENT" + CRLF + "DTSTART:" + dtstart + CRLF + "DTEND:" + dtend + CRLF + "DTSTAMP:" + dtstamp + CRLF + organizer + CRLF
-    ical += "UID:FIXMEUID" + dtstamp + CRLF
-    ical += attendee + "CREATED:" + dtstamp + CRLF + description + "LAST-MODIFIED:" + dtstamp + CRLF + "LOCATION:" + CRLF + "SEQUENCE:0" + CRLF + "STATUS:CONFIRMED" + CRLF
-    ical += "SUMMARY:test " + ddtstart.strftime(
-        "%Y%m%d @ %H:%M") + CRLF + "TRANSP:OPAQUE" + CRLF + "END:VEVENT" + CRLF + "END:VCALENDAR" + CRLF
 
-    eml_body = "Email body visible in the invite of outlook and outlook.com but not google calendar"
-    eml_body_bin = "This is the email body in binary - two steps"
+def ccy_to_char(ccy: str) -> str:
+    """converts well-known iso ccy codes (RUB, USD, ...) to one-symbol chars ($, ...)"""
+    if ccy == "RUB":
+        return "\u20BD"
+    elif ccy == "USD":
+        return "$"
+    elif ccy == "EUR":
+        return "\u20AC"
+    else:
+        return ccy
+
+
+def generate_calendar(bond: Bond,
+                      coupons: List[CouponScheduleEntry],
+                      amorts: List[AmortizationScheduleEntry]) -> Calendar:
+    """returns tuple with first element a calendar with events of payments for a bond
+    and second element as a textual description"""
+    cal = Calendar()
+    cal.add("prodid", "-//Coupon notifier")
+    cal.add("version", "2.0")
+
+    ccy_char = ccy_to_char(bond.notional_ccy)
+    for coupon in coupons:
+        event = generate_event(f'"{bond.name}" coupon of {coupon.value}{ccy_char} ({bond.isin})',
+                               coupon.coupon_date)
+        cal.add_component(event)
+
+    for amort in amorts:
+        event = generate_event(f'"{bond.name}" notional repayment of {amort.value}{ccy_char} ({bond.isin})',
+                               amort.amort_date)
+        cal.add_component(event)
+    return cal
+
+
+def send_to_email(cal: Calendar, bond: Bond, from_addr: str, to_addr: str) -> None:
+    eml_body = "Please accept the invite to get expected coupons and notional repayment schedule in your calendar"
     msg = MIMEMultipart('mixed')
-    msg['Reply-To'] = fro
+    msg['Reply-To'] = from_addr
     msg['Date'] = formatdate(localtime=True)
-    msg['Subject'] = "pyICSParser invite" + dtstart
-    msg['From'] = fro
-    msg['To'] = ",".join(attendees)
+    msg['Subject'] = f"Schedule for {bond.name}"
+    msg['From'] = from_addr
+    msg['To'] = to_addr
+
+    ical = cal.to_ical()
+    sical = str(ical, encoding="utf-8")
 
     part_email = MIMEText(eml_body, "html")
-    part_cal = MIMEText(ical, 'calendar;method=REQUEST')
+    part_cal = MIMEText(sical, 'calendar;method=REQUEST')
 
-    # msgAlternative = MIMEMultipart('alternative')
-    msgAlternative = MIMEMultipart('mixed')
-    msg.attach(msgAlternative)
+    msg_alternative = MIMEMultipart('alternative')
+    msg.attach(msg_alternative)
 
-    # ical_atch = MIMEBase('application/ics', ' ;name="%s"' % "invite.ics")
-    ical_atch = MIMEBase('text/calendar', ' ;name="%s"' % "invite.ics")
-    ical_atch.set_payload(ical)
+    ical_atch = MIMEBase('application/ics', ' ;name="%s"' % "invite.ics")
+    ical_atch.set_payload(sical)
     encoders.encode_base64(ical_atch)
     ical_atch.add_header('Content-Disposition', 'attachment; filename="%s"' % "invite.ics")
 
@@ -69,66 +89,44 @@ def old_main():
     encoders.encode_base64(eml_atch)
     eml_atch.add_header('Content-Transfer-Encoding', "")
 
-    msgAlternative.attach(part_email)
-    msgAlternative.attach(part_cal)
+    msg_alternative.attach(part_email)
+    msg_alternative.attach(part_cal)
 
-    # mailServer = smtplib.SMTP('smtp.gmail.com', 587)
-    # mailServer = smtplib.SMTP('smtp.mail.ru', 465)
-    mailServer = smtplib.SMTP('smtp.mail.ru', 587)
-    mailServer.ehlo()
-    mailServer.starttls()
-    mailServer.ehlo()
-    mailServer.login(login, password)
-    mailServer.sendmail(fro, attendees, msg.as_string())
-    mailServer.close()
-
-
-def load_coupon_schedule_json(isin: str)-> "json":
-    url = f"{ISS_URL}{isin}/bondization.json"
-    data = requests.get(url)
-    return json.loads(data.text)
+    mail_server = smtplib.SMTP('localhost')
+    # {
+    # mail_server = smtplib.SMTP('smtp.mail.ru', 587)
+    # mail_server.ehlo()
+    # mail_server.starttls()
+    # mail_server.ehlo()
+    # login = ""
+    # password = ""
+    # mail_server.login(login, password)
+    # }
+    mail_server.sendmail(from_addr, [to_addr], msg.as_string())
+    mail_server.close()
 
 
-class AmmortizationScheduleEntry:
-    pass
-
-class CouponScheduleEntry:
-    def __init__(self, coupon_date: datetime,
-                 record_date: datetime,
-                 start_date: datetime,
-                 notional: float,
-                 notional_ccy: str,
-                 #in notional ccy:
-                 value: float,
-                 #in real percents, not in fractions of 1:
-                 yearly_prc: float):
-        self.coupon_date = coupon_date
-        self.record_date = record_date
-        self.start_date = start_date
-        self.notional = notional
-        self.notional_ccy = notional_ccy
-        self.value = value
-        self.yearly_prc = yearly_prc
-
-
-class BondSchedule:
-    def __init__(self, ammortizations: AmmortizationSchedule, coupons: CouponSchedule):
-
-def parse_coupon_schedule(data: "json") -> List[CouponSchedule]:
-    data["coupons"]["columns"].index("coupondate")
-    #TODO: return sorted dict so I can easily find future coupons
+def send_payment_schedule_invites(isins: List[str], to_email: str):
+    for isin in isins:
+        print(f"Processing {isin}")
+        bond = load_bond(isin)
+        coupons, amorts = bond.payments_since_date(datetime.date.today())
+        cal = generate_calendar(bond, coupons, amorts)
+        print("Sending email")
+        send_to_email(cal, bond, to_email, to_email)
+    print("Done")
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Downloads official rates from Russian Central Bank and sends email "
-                                                 "if there is a significant gap between today's and yesterday's rates",
+    parser = argparse.ArgumentParser(description="Downloads schedule for specified bonds from Moscow Exchange (MOEX) "
+                                                 "and sends meeting invites to specified e-mail that correspond to "
+                                                 "bond's coupons and notional amortizations",
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("--email", default="root",
-                        help="E-mail address to which send warning mail in case rate jumps")
+    parser.add_argument("--email", required=True, help="E-mail address to which send invites")
+    parser.add_argument("isins", help="ISIN codes of bonds on MOEX", nargs="+", metavar="ISIN")
     args = parser.parse_args()
-    isin = "RU000A0JXY44"
-    load_coupon_schedule_json(isin)
-    print(d.keys())
+    email = args.email
+    send_payment_schedule_invites(args.isins, email)
 
 
 if __name__ == "__main__":
