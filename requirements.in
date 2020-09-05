@@ -1,0 +1,7 @@
+beautifulsoup4
+icalendar
+piexif
+Pillow
+requests
+pipdeptree #otherwise pip-sync will remove it
+pip-tools
