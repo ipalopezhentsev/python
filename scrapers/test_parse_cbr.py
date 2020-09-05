@@ -1,5 +1,5 @@
 import unittest
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 from scrapers.parse_cbr import RatesInfo
 from scrapers.parse_cbr import RatesTable
@@ -12,7 +12,7 @@ class TestRatesInfo(unittest.TestCase):
         subj = RatesInfo(r, ts)
         self.assertEqual(subj.rate, r)
         self.assertEqual(subj.ts, ts)
-        ts = datetime.now()
+        ts = ts + timedelta(hours=1)
         self.assertNotEqual(subj.ts, ts)
 
 

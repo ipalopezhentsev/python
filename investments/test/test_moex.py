@@ -78,3 +78,6 @@ class TestMoex(unittest.TestCase):
             except:
                 print(coupon)
                 raise
+
+if __name__ == '__main__':
+    unittest.main()

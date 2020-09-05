@@ -122,3 +122,6 @@ class TestBond(unittest.TestCase):
         cps, ams = b.payments_since_date(date(2018, 5, 8))
         self.assertEqual(cps, [coupons[1]])
         self.assertEqual(ams, [amortizations[1]])
+
+if __name__ == '__main__':
+    unittest.main()
