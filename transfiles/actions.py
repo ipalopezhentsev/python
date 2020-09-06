@@ -8,18 +8,26 @@ logger = logging.getLogger(__name__)
 
 
 class FileAction(Action):
-    def __init__(self, file):
+    def __init__(self, file: str):
         self.file = file
 
 
 class MoveAction(FileAction):
-    def __init__(self, src_file, trg_file):
+    def __init__(self, src_file: str, trg_file: str):
         super().__init__(src_file)
         self.trg_file = trg_file
         self.__done_renaming = None
 
     def __repr__(self) -> str:
         return f"MoveAction[from: {self.file}; to: {self.trg_file}]"
+
+    def __eq__(self, other: object) -> bool:
+        if id(self) == id(os):
+            return True
+        if not isinstance(other, MoveAction):
+            return False
+        else:
+            return self.file == other.file and self.trg_file == other.trg_file
 
     def pre_commit(self):
         tmp_name = self.file + ".bak"

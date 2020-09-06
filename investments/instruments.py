@@ -28,7 +28,7 @@ class CouponScheduleEntry:
             raise ValueError("Cannot have start date past coupon date")
 
 
-@dataclass
+@dataclass(frozen=True)
 class AmortizationScheduleEntry:
     """date after (!) which notional is amortized. i.e. if coupon fails on amortization date,
     the amount is paid without regard to this amortization, it will be seen only on next coupon"""
@@ -43,7 +43,7 @@ class AmortizationScheduleEntry:
             raise ValueError("Value and percent should be positive")
 
 
-@dataclass
+@dataclass(frozen=True)
 class Bond:
     """coupons, ordered by date ascending"""
     coupons: List[CouponScheduleEntry]

@@ -1,5 +1,3 @@
-import unittest
-
 import transfiles.transactions as transactions
 from unittest.mock import Mock, create_autospec, MagicMock
 
@@ -28,7 +26,7 @@ def mock_action_failing_on_commit():
     return action
 
 
-class TestTransactions(unittest.TestCase):
+class TestTransactions:
     def test_process_actions_atomically_happy_path(self):
         """tests all is good when all actions finish fine"""
         good_action1 = mock_action_not_failing_anywhere()
@@ -87,9 +85,9 @@ class TestTransactions(unittest.TestCase):
                 idx_good_action1_rollback = idx
             elif call[0] == f"{bad_action_name}.rollback":
                 idx_bad_action_rollback = idx
-        self.assertIsNotNone(idx_good_action1_rollback)
-        self.assertIsNotNone(idx_bad_action_rollback)
-        self.assertLess(idx_bad_action_rollback, idx_good_action1_rollback)
+        assert idx_good_action1_rollback is not None
+        assert idx_bad_action_rollback is not None
+        assert idx_bad_action_rollback < idx_good_action1_rollback
 
     def test_failure_on_rollback_doesnt_prevent_other_rollbacks(self):
         good_action = mock_action_not_failing_anywhere()
@@ -122,7 +120,3 @@ class TestTransactions(unittest.TestCase):
         In most cases target action will be done on pre_commit() already, 
         so at worst we'll have some temporary leftover for being able to revert.
         """
-
-
-if __name__ == '__main__':
-    unittest.main()

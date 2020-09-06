@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import sys
-from typing import List, MutableMapping, Dict, Mapping
+from typing import List, MutableMapping, Dict, Mapping, Optional
 import requests
 import re
 import datetime
@@ -11,25 +11,26 @@ import os.path
 import csv
 import argparse
 import smtplib
+from dataclasses import dataclass
 from email.mime.text import MIMEText
 
 from bs4 import BeautifulSoup
 
 
+@dataclass(frozen=True)
 class RatesInfo:
-    def __init__(self, rate: float, ts: datetime):
-        self.rate = rate
-        self.ts = ts
+    rate: float
+    ts: datetime
 
 
 CcyPair = str
 
 
+@dataclass(frozen=True)
 class RatesViolation:
-    def __init__(self, rate_now, rate_yesterday, rel_diff):
-        self.rate_now = rate_now
-        self.rate_yesterday = rate_yesterday
-        self.rel_diff = rel_diff
+    rate_now: float
+    rate_yesterday: float
+    rel_diff: float
 
 
 class RatesTable:
@@ -119,9 +120,8 @@ def find_rates(dates: List[datetime.date], indicators_parent) -> RatesTable:
     return RatesTable(rates_by_dates)
 
 
-def download_fresh_rates_by_dates(url, html_dump_filename: str) -> RatesTable:
-    page = requests.get(url)
-    soup = BeautifulSoup(page.content, 'html.parser')
+def download_fresh_rates_by_dates(cbr_html, html_dump_filename: Optional[str]) -> RatesTable:
+    soup = BeautifulSoup(cbr_html, 'html.parser')
     # encoding needed for saving of rouble sign
     if html_dump_filename:
         with open(html_dump_filename, 'w', encoding='utf-8') as html_file:
@@ -183,7 +183,7 @@ def prepare_mail_text(violating_rates: Mapping[CcyPair, RatesViolation], rel_eps
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Downloads official rates from Russian Central Bank and sends email "
-                                     "if there is a significant gap between today's and yesterday's rates",
+                                                 "if there is a significant gap between today's and yesterday's rates",
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("--dump-html", action="store_true", default=False,
                         help="Dumps html page as it looked at time of parsing")
@@ -210,7 +210,8 @@ def main() -> None:
     rates_by_dates_existing = load_existing_rates(rates_history_filename)
 
     print(f"Downloading new rates from {url}")
-    rates_by_dates_delta = download_fresh_rates_by_dates(url, html_dump_filename)
+    page = requests.get(url)
+    rates_by_dates_delta = download_fresh_rates_by_dates(page.content, html_dump_filename)
 
     if rates_by_dates_existing.append_rates(rates_by_dates_delta):
         print(f"Saving new rates to {rates_history_filename}")
