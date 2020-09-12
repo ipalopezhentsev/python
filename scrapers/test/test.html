@@ -1,0 +1,1436 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="format-detection" content="telephone=no" />
+<meta name="zoom:lang" content="ru" />
+    <meta name="zoom:last-modified" content="Tue, 01 Sep 2020 08:55:18 GMT" />
+<title>Центральный банк Российской Федерации | Банк России</title>
+
+
+
+    
+
+
+            <link rel="stylesheet" type="text/css" href="/common/libs/jquery-ui/jquery-ui.min.css?v=v3348762655" media="all">
+
+            <!--[if IE 9]><link rel="stylesheet" type="text/css" href="/common/style/main-ie9.css?v=v415611664" media="all"><![endif]-->
+
+            <!--[if gt IE 9]><!--><link rel="stylesheet" type="text/css" href="/common/style/main.css?v=v415611664" media="all"><!--<![endif]-->
+
+
+        <script type="text/javascript" src="/common/libs/jquery-3.4.1.min.js?v=v906141912"></script>
+
+        <script type="text/javascript" src="/common/libs/jquery-ui/jquery-ui.min.js?v=v906141912"></script>
+
+        <script type="text/javascript" src="/common/libs/jquery.inputmask.min.js?v=v089173232"></script>
+
+        <script type="text/javascript" src="/common/scripts/vendor.js?v=v2713166434"></script>
+
+        <script type="text/javascript" src="/common/libs/jquery.floatThead.min.js?v=v3348762655"></script>
+
+        <script type="text/javascript" src="/common/scripts/main.min.js?v=v415611664"></script>
+
+
+        <script type="text/javascript" src="/common/libs/localization-ru.js?v=v1110665999"></script>
+
+        <script type="text/javascript" src="/js/jquery.cookie.min.js?v=v4260771145"></script>
+
+        <script type="text/javascript" src="/js/site.js?v=v089096591"></script>
+
+
+
+
+
+<script src="/js/moment-with-locales.min.js?v=v397835885" type="text/javascript"></script>
+    <script type="text/javascript">
+    $(function () {
+        var $menu = $('[data-menu]'),
+            $menuItemBtn = $menu.find('[data-menu-item-btn]'),
+            $menuShow = $('[data-menu-show]'),
+            $menuClose = $('[data-menu-close]');
+        var config = $menu.data('config');
+
+        $menu.find('.header_right').html($('#header .header_right').html());
+
+        $menuShow.on('click.cms_loadwholesite', function (event) {
+            loadWholeSite(true);
+        });
+        $menuShow.on('mouseenter.cms_loadwholesite', function (event) {
+            loadWholeSite(false);
+        });
+
+        var xhr = null, g_openMenu = false;
+        function loadWholeSite(openmenu) {
+            g_openMenu = g_openMenu || openmenu;
+            $menuShow.off('click.cms_loadwholesite mouseenter.cms_loadwholesite');
+            if (xhr === null) {
+                $('.menu_wrap .networks-circle').html($('.networks-circle.footer_networks').html());
+                $('.menu_wrap .header_search').html($('.header .offsetMenu .header_search').html());
+
+                xhr = $.ajax(config.url, {
+                    dataType: "html",
+                    method: "get",
+                    success: function (html) {
+                        $('[data-cms-wholesite-placeholder]').replaceWith(html);
+                        
+                        app.init($menu);
+                                                
+                        for (var i in config.catalogPath) {
+                            $menu.find('li[data-catalog-id="' + config.catalogPath[i] + '"]')
+                                .addClass("_active");
+                            $menu.find('li[data-catalog-id="' + config.catalogPath[i] + '"]')
+                                .closest('[data-tabs-content]')
+                                .trigger('open-anchor');
+                        }
+
+                        
+                        xhr = true;
+                    },
+                    error: function () {
+                        xhr = null;
+                    }
+                });
+            }
+        }
+    });
+    </script>
+
+
+<script>
+    if (window.localStorage) {
+        if (localStorage.getItem('vision-impaired'))
+            document.getElementsByTagName('html')[0].className += ' vision-impaired';
+    }
+</script>
+<script>
+    document.documentElement.style.setProperty('--scrollbar-width', '17px');
+    setTimeout(function () {
+        
+        var div = document.createElement('div');
+
+        div.style.overflowY = 'scroll';
+        div.style.width = '50px';
+        div.style.height = '50px';
+
+        
+        div.style.visibility = 'hidden';
+
+        document.body.appendChild(div);
+        var scrollWidth = Math.max(div.offsetWidth - div.clientWidth, 0.15); 
+        document.body.removeChild(div);
+        
+        document.documentElement.style.setProperty('--scrollbar-width', scrollWidth + 'px');
+    }, 0);
+</script>
+
+
+
+    
+</head>
+<body class="">
+    
+
+    <!-- Yandex.Metrika counter -->
+    <script type="text/javascript" >
+       (function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+       m[i].l=1*new Date();k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})
+       (window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");
+
+       ym(5774506, "init", {
+            clickmap:true,
+            trackLinks:true,
+            accurateTrackBounce:true,
+            webvisor:true
+       });
+    </script>
+    <noscript><div><img src="https://mc.yandex.ru/watch/5774506" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
+    <!-- /Yandex.Metrika counter -->   
+
+    
+    
+
+    <header class="home-header" id="header">
+        <div class="top-line" data-top-line="">
+            <div class="offsetMenu">
+                <div class="col-md-23 offset-md-1">
+                    <div class="top-line_inner header_inner">
+                        <div class="row">
+                            <div class="col-xl-5 col-md-9">
+                                <div class="header_left">
+                                    <div class="header_menu" data-menu-show=""></div><a class="header_logo" href="/"></a>
+                                </div>
+                            </div>
+                            <div class="col-xl-17 col-md-13 offset-md-1 header_block">
+                                <div class="header_search">
+                                        <a class="header_search_btn" href="#" data-search-form-show>
+        <div class="header_search_icon"></div><span class="d-none d-xl-block">Поиск по сайту</span>
+    </a>
+
+
+                                </div>
+                                <div class="d-none d-md-block">
+                                    <div class="header_right">
+                                        <div class="header_link"><a href="/reception/">Интернет-приемная</a></div>
+<div class="header_lang">
+            <div class="header_lang_item _active"><span><!--noindex-->RU<!--/noindex--></span></div>
+            <div class="header_lang_item"><a href="/Localization/SwitchLanguage?url=%2F&amp;from=ru-RU&amp;to=en-GB"><!--noindex-->EN<!--/noindex--></a></div>
+</div>
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="home-header_shadow"></div>
+        <div class="offsetMenu">
+            <div class="col-md-23 offset-md-1">
+                <div class="home-header_content">
+                    <div class="home-header_top header_inner">
+                        <div class="row">
+                            <div class="col-xl-5 col-md-7">
+                                <div class="header_left">
+                                    <div class="header_menu" data-menu-show=""></div><a class="header_logo" href="/"></a>
+                                </div>
+                            </div>
+                            <div class="col-xl-18 col-md-16 header_block">
+                                <div class="header_search">
+                                    <a class="header_search_btn _hide" href="#" data-search-form-show data-home-search><div class="header_search_icon"></div><span class="d-none d-md-block">Поиск по сайту</span></a>
+
+
+                                </div>
+                                <div class="header_right d-none d-md-flex">
+                                    <div class="networks header_networks">
+<a class="networks_item _fb" href="https://www.facebook.com/cbr.ru/" title="Facebook"></a>
+<a class="networks_item _ig" href="https://www.instagram.com/cbrf_official/" title="Instagram"></a>
+<a class="networks_item _vk" href="https://vk.com/cbr_official" title="ВКонтакте"></a>
+<a class="networks_item _tw" href="https://twitter.com/bank_of_russia" title="Twitter"></a>
+<a class="networks_item _yt" href="https://www.youtube.com/user/BankofRussia" title="Youtube"></a>
+</div>
+<div class="header_lang">
+            <div class="header_lang_item _active"><span><!--noindex-->RU<!--/noindex--></span></div>
+            <div class="header_lang_item"><a href="/Localization/SwitchLanguage?url=%2F&amp;from=ru-RU&amp;to=en-GB"><!--noindex-->EN<!--/noindex--></a></div>
+</div>
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="home-header_main _mobile d-block d-md-none">
+  <div class="swiper-container home-header_gall_mobile">
+	<div class="swiper-wrapper">
+	  <div class="swiper-slide" data-background-image="/StaticHtml/File/82963/main_b.jpg">
+		<div>
+		  <div class="home-header_title">Центральный банк <br /> Российской Федерации</div>
+		</div>
+	  </div>
+	  <!--<a href="https://www.youtube.com/watch?v=DNmwYFPP8BI" class="swiper-slide" data-background-image="/StaticHtml/File/82963/ssa_280720.jpg">
+		<div>
+		  <div class="home-header_title">Новый закон:<br/> что изменится для<br/> розничных инвесторов</div>
+		  <div class="home-header_desc">Прямой эфир<br/>с Сергеем Швецовым<br/>28 июля 2020 года</div>
+		</div>
+	  </a>
+
+
+
+	  <a href="/press/keypr/" class="swiper-slide" data-background-image="/StaticHtml/File/82963/keyrate_24072020.jpg">
+		<div>
+		  <div class="home-header_title">Банк России принял решение снизить ключевую ставку на 25 б.п., до 4,25% годовых
+		  </div>
+		  <div class="home-header_desc"></div>
+		  <div class="home-header_desc"></div>	  			  	
+		</div>
+	  </a>-->
+	 <!-- <a href="/press/event/?id=7949" class="swiper-slide" data-background-image="/StaticHtml/File/82963/esn_2407_slide.jpg ">
+		<div>
+		  <div class="home-header_title">Заявление Председателя <br/>Банка России<br/> Эльвиры Набиуллиной <br/>по&nbsp;итогам заседания<br/> Совета директоров</div>
+		  <div class="home-header_desc">24 июля 2020 года</div>
+		</div>
+	  </a>
+	   <a href="/hd_base/ruonia/ruonia/" class="swiper-slide" data-background-image="/StaticHtml/File/82963/r3.jpg">
+		<div>
+		  <div class="home-header_title">Эталонная<br/> процентная<br/> ставка</div>
+		  <div class="home-header_desc">новый раздел на сайте</div>
+		</div>
+	  </a>-->
+	  
+	     
+	  <a href="/content/document/file/112270/inf-material_bki_2020q1.pdf" target="_blank" class="swiper-slide" data-background-image="/StaticHtml/File/82963/bki_0109.jpg">
+		<div>
+		  <div class="home-header_title">Динамика долговой нагрузки населения</div>
+		  <div class="home-header_desc">в IV квартале 2019 – I квартале 2020 года на основе данных бюро кредитных историй</div>
+		</div>
+	  </a>
+	 
+	   <a href="https://www.youtube.com/watch?v=Q_3CPDLqX_w&feature=emb_logo" class="swiper-slide" data-background-image="/StaticHtml/File/82963/sign.jpg ">
+		<div>
+		  <div class="home-header_title">Как проверить финансовую организацию?</div>
+		  <div class="home-header_desc">видеоинструкция</div>
+		</div>
+	  </a>
+	   <a href="/reception/online_app/" class="swiper-slide" data-background-image="/StaticHtml/File/82963/o2.jpg">
+		<div>
+		  <div class="home-header_title">Мобильное приложение <br/>«ЦБ онлайн» </div>
+		  <div class="home-header_desc">помощник для тех, кто пользуется финансовыми услугами</div>
+		</div>
+	  </a>
+	  
+	   
+	
+	  
+	  
+	  
+	  <a href="/static/publ/160/index.html" target="_blank" class="swiper-slide" data-background-image="/StaticHtml/File/82963/160-3.jpg ">
+		<div>
+		  <div class="home-header_title">160 фактов</div>
+		  <div class="home-header_desc">о деньгах и работе центрального банка с 1860 года по наши дни</div>
+		</div>
+	  </a>
+	  <a href="https://fincult.info/article/zvonyat-s-nomera-banka-i-prosyat-predostavit-konfidentsialnye-dannye-chto-delat/" class="swiper-slide" data-background-image="/StaticHtml/File/82963/phone4.jpg ">
+		<div>
+		  <div class="home-header_title">Звонят от лжебанка: <br/>как распознать <br/>мошенников?</div>
+		  <div class="home-header_desc">материал Fincult.info</div>
+		</div>
+	  </a>
+	  <!-- <a href="/static/publ/memocoins/index.html" class="swiper-slide" data-background-image="/StaticHtml/File/82963/9may.jpg">
+<div>
+<div class="home-header_title">Истории Победы</div>
+<div class="home-header_desc">виртуальная выставка</div>
+</div>
+</a>-->
+
+	  <!-- <a href="/covid/" class="swiper-slide" data-background-image="/StaticHtml/File/82963/covid_1.jpg">
+<div>
+<div class="home-header_title">Коронавирус: <br />меры поддержки <br />граждан и бизнеса</div>
+</div>
+</a>
+
+<a href="/3003_0304_2020/" class="swiper-slide" data-background-image="/StaticHtml/File/82963/func2.jpg">
+<div>
+<div class="home-header_title">Работа финансового сектора</div>
+<div class="home-header_desc">в период до 11 мая 2020 года</div>
+</div>
+</a>
+
+<a href="/info_2020/" class="swiper-slide" data-background-image="/StaticHtml/File/82963/roly.jpg">
+<div>
+<div class="home-header_title">Ситуация<br />на финансовом рынке<br />и стабилизационные меры</div>
+</div>
+</a>-->
+	<!--  <a href="/collection/collection/file/29104/libor_2020_1.pdf" class="swiper-slide" data-background-image="/StaticHtml/File/82963/magazine_mockup_29072020.jpg ">
+		<div>
+		  <div class="home-header_title">Реализация глобальной реформы финансовых индикаторов и использования LIBOR/EURIBOR на российском рынке</div>
+		  <div class="home-header_desc">по итогам первого полугодия 2020 года</div>
+		</div>
+	  </a>-->
+	 
+	  <!--  <a href="/content/document/file/109720/consultation_paper_200723.pdf" class="swiper-slide" data-background-image="/StaticHtml/File/82963/Consultation_Paper_200723.jpg">
+<div>
+<div class="home-header_title">О концептуальных подходах к&nbsp;регулированию вопросов обеспечения прав владельцев облигаций</div>
+<div class="home-header_desc">Доклад для общественных консультаций<br/>Июль 2020 года</div>
+</div>
+</a>
+
+<a href="/press/event/?id=6927" class="swiper-slide" data-background-image="/StaticHtml/File/82963/items_Zabotkin.jpg">
+<div>
+<div class="home-header_title">О ставке, нейтральном уровне, голубях и ястребах</div>
+<div class="home-header_desc">Интервью Алексея Заботкина агентству «Рейтер»</div>
+</div>
+</a>-->
+
+	  <!-- <a href="/info_2020/press_info2020/" class="swiper-slide" data-background-image="/StaticHtml/File/82963/esn_1906.jpg">
+<div>
+<div class="home-header_title">Пресс-конференции <br />«Текущая ситуация <br />и стабилизационные меры»</div>
+<div class="home-header_desc"></div>
+<div class="home-header_desc"></div>	  			  	
+</div>
+</a>
+
+< <a href="/info_2020/press_info2020/" class="swiper-slide" data-background-image="/StaticHtml/File/82963/esn_0805.jpg">
+<div>
+<div class="home-header_title">Пресс-конференции <br />«Текущая ситуация <br />и стабилизационные меры»</div>
+<div class="home-header_desc"></div>
+<div class="home-header_desc"></div>	  			  	
+</div>
+</a>
+
+
+
+a href="https://econs.online/articles/bookshelf/uroki-ekonomiki-ekonomicheskie-otmychki-model-ploskoj-zemli/" class="swiper-slide" data-background-image="/StaticHtml/File/82963/kvy1.jpg">
+<div>
+<div class="home-header_title">Ценовая и финансовая стабильность<br />в сырьевой экономике</div>
+<div class="home-header_desc">Ксения Юдаева для портала «Эконс»</div>
+</div>
+</a>
+
+<a href="http://old.cbr.ru" class="swiper-slide" data-background-image="/StaticHtml/File/82963/arch_1.jpg">
+<div>
+<div class="home-header_title">Архив сайта<br />Банка России</div>
+<div class="home-header_desc">по состоянию на 27 марта 2020 года</div>
+</div>
+</a>  
+
+<a href="https://fincult.info/article/kak-reshat-finansovye-voprosy-ne-vykhodya-iz-doma/" class="swiper-slide" data-background-image="/StaticHtml/File/82963/home4.jpg">
+<div>
+<div class="home-header_title">Как решать финансовые вопросы,<br />не выходя из дома</div>
+<div class="home-header_desc">материал сайта «Финансовая культура»</div>
+</div>
+</a>
+
+<a href="/press/pr/?file=20032020_133645if2020-03-20T13_36_08.htm" class="swiper-slide" data-background-image="/StaticHtml/File/82963/sup5.jpg">
+<div>
+<div class="home-header_title">Меры по поддержке граждан,<br />экономики и финансового сектора<br />в условиях пандемии коронавируса</div>
+</div>
+</a>-->
+
+	</div>
+	<div class="swiper-pagination"></div>
+  </div>
+</div>
+
+
+<div class="home-header_main _desktop d-none d-md-block">
+  <div class="swiper-container home-header_gall">
+	<div class="swiper-wrapper">
+	  <div class="swiper-slide" data-background-image="/StaticHtml/File/82963/main_b.jpg">
+		<div>
+		  <div class="home-header_title">Центральный банк <br /> Российской Федерации</div>
+		  <div class="home-header_search">
+			<div class="col-9">
+			  <form action="/search/">
+				<div class="home-header_search_field">
+				  <input class="home-header_search_inp" placeholder="Поиск по сайту" name="text"/>
+				  <button class="b-btn _blue home-header_search_btn">Искать</button>
+				</div>
+			  </form>
+			</div>
+		  </div>
+		</div>
+	  </div>
+	 <!-- <div class="swiper-slide" data-background-image="/StaticHtml/File/82963/ssa_280720.jpg">
+		<div>
+		  <div class="home-header_title">Новый закон:<br/> что изменится  для <br/>розничных инвесторов</div>
+		  <div class="home-header_desc">Прямой эфир<br/>с Сергеем Швецовым<br/>28 июля 2020 года</div>
+		  <div class="home-header_btn"><a class="b-btn _blue" href="https://www.youtube.com/watch?v=DNmwYFPP8BI" title="Перейти">Перейти</a></div>
+		</div>
+	  </div>
+
+	  <div class="swiper-slide" data-background-image="/StaticHtml/File/82963/keyrate_24072020.jpg">
+		<div>
+		  <div class="home-header_title">Банк России принял решение <br />снизить ключевую ставку <br />на 25 б.п., до 4,25% годовых</div>
+		  <div class="home-header_desc"></div>
+		  <div class="home-header_btn"><a class="b-btn _blue" href="/press/keypr/" title="Перейти">Перейти</a></div>
+		</div>
+	  </div>-->
+	<!--  <div class="swiper-slide" data-background-image="/StaticHtml/File/82963/esn_2407_slide.jpg ">
+		<div>
+		  <div class="home-header_title">Заявление Председателя <br/>Банка России<br/> Эльвиры Набиуллиной <br/>по&nbsp;итогам заседания<br/> Совета директоров</div>
+		  <div class="home-header_desc">24 июля 2020 года</div>
+		  <div class="home-header_btn"><a class="b-btn _blue" href="/press/event/?id=7949" title="Перейти">Перейти</a></div>
+		</div>
+	  </div>-->
+	  <!--<div class="swiper-slide" data-background-image="/StaticHtml/File/82963/esn_official.jpg">
+<div>
+<div class="home-header_title">Выступление <br />Эльвиры Набиуллиной</div>
+<div class="home-header_desc">на заседании Совета по развитию <br />финансового рынка при Совете Федерации</div>
+<div class="home-header_btn"><a class="b-btn _blue" href="/press/event/?id=6914" title="перейти">Перейти</a></div>
+</div>
+</div>
+	   <div class="swiper-slide" data-background-image="/StaticHtml/File/82963/r3.jpg">
+		<div>
+		  <div class="home-header_title">Эталонная<br/> процентная<br/> ставка</div>
+		  <div class="home-header_desc">новый раздел на сайте</div>
+		  <div class="home-header_btn"><a class="b-btn _blue" href="/hd_base/ruonia/ruonia/" title="перейти">Перейти</a></div>
+		</div>
+	  </div>-->
+	  
+	  
+	  
+	   <div class="swiper-slide" data-background-image="/StaticHtml/File/82963/bki_0109.jpg">
+		<div>
+		  <div class="home-header_title">Динамика долговой <br/>нагрузки населения</div>
+		  <div class="home-header_desc">в IV квартале 2019 – I квартале 2020 года <br/>на основе данных бюро кредитных историй</div>
+		  <div class="home-header_btn"><a class="b-btn _blue" href="/content/document/file/112270/inf-material_bki_2020q1.pdf" target="_blank" title="перейти">Перейти</a></div>
+		</div>
+	  </div>
+	   <div class="swiper-slide" data-background-image="/StaticHtml/File/82963/sign.jpg ">
+		<div>
+		  <div class="home-header_title">Как проверить<br/> финансовую<br/> организацию?</div>
+		  <div class="home-header_desc">видеоинструкция</div>
+		  <div class="home-header_btn"><a class="b-btn _blue" href="https://www.youtube.com/watch?v=Q_3CPDLqX_w&feature=emb_logo" title="Перейти">Перейти</a></div>
+		</div>
+	  </div>
+
+	  <div class="swiper-slide" data-background-image="/StaticHtml/File/82963/o2.jpg">
+		<div>
+		  <div class="home-header_title">Мобильное приложение <br/>«ЦБ онлайн» </div>
+		  <div class="home-header_desc">помощник для тех, кто пользуется финансовыми услугами</div>
+		  <div class="home-header_btn"><a class="b-btn _blue" href="/reception/online_app/" title="перейти">Перейти</a></div>
+		</div>
+	  </div>
+	  
+	  
+	  <div class="swiper-slide" data-background-image="/StaticHtml/File/82963/160-3.jpg ">
+		<div>
+		  <div class="home-header_title">160 фактов</div>
+		  <div class="home-header_desc">о деньгах и работе центрального банка <br/>с 1860 года по наши дни</div>
+		  <div class="home-header_btn"><a class="b-btn _blue" href="/static/publ/160/index.html" target="_blank" title="перейти">Перейти</a></div>
+		</div>
+	  </div>
+	  
+	  <div class="swiper-slide" data-background-image="/StaticHtml/File/82963/phone4.jpg">
+<div>
+<div class="home-header_title">Звонок от лжебанка:<br/> как распознать<br/> мошенников?</div>
+<div class="home-header_desc">материал Fincult.info</div>
+<div class="home-header_btn"><a class="b-btn _blue" href="https://fincult.info/article/zvonyat-s-nomera-banka-i-prosyat-predostavit-konfidentsialnye-dannye-chto-delat/" title="перейти">Перейти</a></div>
+</div>
+</div>
+
+
+	 
+	  
+	 
+	  
+	 
+	
+	  <!--	
+<div class="swiper-slide" data-background-image="/StaticHtml/File/82963/9may.jpg">
+<div>
+<div class="home-header_title">Истории Победы</div>
+<div class="home-header_desc">виртуальная выставка</div>
+<div class="home-header_btn"><a class="b-btn _blue" href="/static/publ/memocoins/index.html" title="перейти">Перейти</a></div>
+</div>
+</div>-->
+
+	  <!--<div class="swiper-slide" data-background-image="/StaticHtml/File/82963/covid_1.jpg">
+<div>
+<div class="home-header_title">Коронавирус:<br />меры поддержки <br />граждан и бизнеса</div>
+<div class="home-header_btn"><a class="b-btn _blue" href="/covid/" title="перейти">Перейти</a></div>
+</div>
+</div>
+
+<div class="swiper-slide" data-background-image="/StaticHtml/File/82963/func2.jpg">
+<div>
+<div class="home-header_title">Работа финансового сектора</div>
+<div class="home-header_desc">в период до 11 мая 2020 года</div>
+<div class="home-header_btn"><a class="b-btn _blue" href="/3003_0304_2020/" title="перейти">Перейти</a></div>
+</div>
+</div>
+
+
+<div class="swiper-slide" data-background-image="/StaticHtml/File/82963/roly.jpg">
+<div>
+<div class="home-header_title">Ситуация<br />на финансовом рынке<br />и стабилизационные меры</div>
+<div class="home-header_btn"><a class="b-btn _blue" href="/info_2020/" title="перейти">Перейти</a></div>
+</div>
+</div>-->
+	  <!--<div class="swiper-slide" data-background-image="/StaticHtml/File/82963/magazine_mockup_29072020.jpg">
+		<div>
+		  <div class="home-header_title">Реализация глобальной реформы<br/> финансовых индикаторов <br/>и использования <br/>LIBOR/EURIBOR <br/>на российском рынке</div>
+		  <div class="home-header_desc">по итогам первого полугодия 2020 года</div>
+		  <div class="home-header_btn"><a class="b-btn _blue" href="/collection/collection/file/29104/libor_2020_1.pdf" title="Перейти">Перейти</a></div>
+		</div>
+	  </div>-->
+	 
+
+
+
+
+	  <!--  <div class="swiper-slide" data-background-image="/StaticHtml/File/82963/Consultation_Paper_200723.jpg">
+<div>
+<div class="home-header_title">О концептуальных подходах <br/>к&nbsp;регулированию вопросов <br/>обеспечения прав <br/>владельцев облигаций</div>
+<div class="home-header_desc">Доклад для общественных консультаций<br/>Июль 2020 года</div>
+<div class="home-header_btn"><a class="b-btn _blue" href="/content/document/file/109720/consultation_paper_200723.pdf" title="перейти">Перейти</a></div>
+</div>
+</div>
+
+<div class="swiper-slide" data-background-image="/StaticHtml/File/82963/items_Zabotkin.jpg">
+<div>
+<div class="home-header_title">О ставке, <br />нейтральном уровне, <br />голубях и ястребах</div>
+<div class="home-header_desc">Интервью Алексея Заботкина агентству «Рейтер»</div>
+<div class="home-header_btn"><a class="b-btn _blue" href="/press/event/?id=6927" title="перейти">Перейти</a></div>
+</div>
+</div>-->
+
+	  <!-- <div class="swiper-slide" data-background-image="/StaticHtml/File/82963/online_1704.jpg">
+<div>
+<div class="home-header_title">Пресс-конференции <br />«Текущая ситуация <br />и стабилизационные меры»</div>
+<div class="home-header_desc"></div>
+<div class="home-header_btn"><a class="b-btn _blue" href="/info_2020/press_info2020/" title="перейти">Перейти</a></div>
+</div>
+</div>-->
+
+	  <!--		  <div class="swiper-slide" data-background-image="/StaticHtml/File/82963/esn_1906.jpg">
+<div>
+<div class="home-header_title">Пресс-конференции <br />«Текущая ситуация <br />и стабилизационные меры»</div>
+<div class="home-header_desc"></div>
+<div class="home-header_btn"><a class="b-btn _blue" href="/info_2020/press_info2020/" title="Перейти">Перейти</a></div>
+</div>
+</div>
+
+
+
+<div class="swiper-slide" data-background-image="/StaticHtml/File/82963/sup5.jpg">
+<div>
+<div class="home-header_title">Меры по поддержке граждан,<br />экономики и финансового сектора<br />в условиях пандемии коронавируса</div>
+
+<div class="home-header_btn"><a class="b-btn _blue" href="/press/pr/?file=20032020_133645if2020-03-20T13_36_08.htm" title="перейти">Перейти</a></div>
+</div>
+</div>
+
+
+
+<div class="swiper-slide" data-background-image="/StaticHtml/File/82963/kvy1.jpg">
+<div>
+<div class="home-header_title">Ценовая и финансовая стабильность<br />в сырьевой экономике</div>
+<div class="home-header_desc">Ксения Юдаева для портала «Эконс»</div>
+<div class="home-header_btn"><a class="b-btn _blue" href="https://econs.online/articles/bookshelf/uroki-ekonomiki-ekonomicheskie-otmychki-model-ploskoj-zemli/" title="перейти">Перейти</a></div>
+</div>
+</div>
+
+<div class="swiper-slide" data-background-image="/StaticHtml/File/82963/arch_1.jpg">
+<div>
+<div class="home-header_title">Архив сайта<br />Банка России</div>
+<div class="home-header_desc">по состоянию на 27 марта 2020 года</div>
+<div class="home-header_btn"><a class="b-btn _blue" href="http://old.cbr.ru" title="перейти">Перейти</a></div>
+</div>
+</div>
+
+<div class="swiper-slide" data-background-image="/StaticHtml/File/82963/home4.jpg">
+<div>
+<div class="home-header_title">Как решать финансовые вопросы,<br />не выходя из дома</div>
+<div class="home-header_desc">материал сайта «Финансовая культура»</div>
+<div class="home-header_btn"><a class="b-btn _blue" href="https://fincult.info/article/kak-reshat-finansovye-voprosy-ne-vykhodya-iz-doma/" title="перейти">Перейти</a></div>
+</div>
+</div>-->
+
+	</div>
+  </div>
+</div>
+
+
+                    <div class="home-header_bottom d-none d-md-block">
+                        <div class="home-header_nav">
+                            <div class="home-header_nav_progress">
+                                <div class="home-header_nav_progress_bar"></div>
+                            </div>
+                            <div class="home-header_nav_right">
+                                <div class="home-header_nav_pag"></div>
+                                <div class="home-header_nav_btns">
+                                    <div class="home-header_nav_btn _prev"></div>
+                                    <div class="home-header_nav_btn _next"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="home-header_menu d-none d-md-block">
+                            <div class="home-header_menu d-none d-md-block">
+<div class="row">
+<div class="col-5">
+<ul class="without_dash without_indent">
+<li><a href="/about_BR/">О&nbsp;Банке России</a></li>
+<li><a href="/Reception">Интернет-приемная</a></li>
+<li><a href="/faq/">Вопросы и&nbsp;ответы</a></li>
+</ul>
+</div>
+<div class="col-7 offset-1">
+<ul class="without_dash without_indent">
+<li><a href="/fmp_check/">Проверить финансовую организацию</a></li>
+<li><a href="/lk_uio/">Личный кабинет участников рынка</a></li>
+<li><a href="/params/">Параметры операций Банка России</a></li>
+</ul>
+</div>
+</div>
+</div>
+
+                        </div>
+                        <div class="home-header_down d-none d-md-block" data-scroll-to-content></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+    <form class="search-form" action="/search/" method="get" data-search-form="">
+    <div class="offsetMenu">
+        <div class="col-md-23 offset-md-1">
+            <div class="search-form_inner">
+                <div class="search-form_title">Что вы хотите найти?</div>
+                <div class="search-form_content">
+                    <div class="search-form_block">
+                        <div class="search-form_icon"></div>
+                        <div class="search-form_field">
+                            <input name="text" type="text" placeholder="Начните писать" data-search-form-input="" />
+                        </div>
+                    </div>
+                    <div class="search-form_btn">
+                        <button class="b-btn _blue" data-search-form-btn="">Искать</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+
+
+
+<div class="menu_wrap" data-menu="" data-config="{&quot;catalogPath&quot;:[15532],&quot;url&quot;:&quot;/Catalog/SiteMap/GetWholeSiteHtml?blockId=59191&quot;}">
+    <div class="offsetMenu">
+        <div class="header_menu _close menu_close d-none d-md-block" data-menu-close=""></div>
+        <div class="header_inner top-line_inner d-block d-md-none">
+            <div class="row">
+                <div class="col-xl-5 col-md-9">
+                    <div class="header_left">
+                        <div class="header_menu _close" data-menu-close=""></div><a class="header_logo" href="/"></a>
+                    </div>
+                </div>
+                <div class="col-xl-17 col-md-13 offset-md-1 header_block">
+                    <div class="header_search"></div>
+                </div>
+            </div>
+        </div>
+        <div class="menu row" data-tabs="data-tabs">
+            <div class="menu_quick col-md-7">
+                <div class="menu_quick_tabs">
+                    <a class="menu_tab _active" href="#" data-tabs-tab="1">Деятельность</a>
+                    <a class="menu_tab" href="#" data-tabs-tab="2">Документы и данные</a>
+                    <a class="menu_tab" href="#" data-tabs-tab="3">О Банке России</a>
+                    <a class="menu_tab" href="#" data-tabs-tab="4">Сервисы</a>
+                </div>
+                <div class="menu_quick_links">
+                    <div class="inner_links"><a href="/allcovid/" title="Новости" style="color:red">Коронавирус: поддержка экономики, бизнеса, граждан</a></div>
+<div class="phones"><a class="menu_phone_val" href="tel:+74993003000">
+<div class="plus">+</div>7 499 300-30-00</a><a class="menu_phone_val" href="tel:88003003000">8 800 300-30-00</a><a class="menu_phone_val" href="tel:300">300</a><span>Бесплатно для звонков с мобильных телефонов</span></div>
+<div class="inner_links">
+  <a href="/news/" title="Новости">Новости</a>
+  <a href="/rbr/" title="Решения Банка России">Решения Банка России</a>
+  <a href="/contacts/" title="Контактная информация">Контактная информация</a>
+  <a href="/sitemap" title="Карта сайта">Карта сайта</a>
+  <a href="/about/" title="О сайте">О сайте</a>
+  </div>
+<div class="networks-circle">
+  <a class="networks-circle_item _fb" href="https://www.facebook.com/cbr.ru/" title="Facebook"></a>
+  <a class="networks-circle_item _ig" href="https://www.instagram.com/cbrf_official/" title="Instagram"></a>
+  <a class="networks-circle_item _vk" href="https://vk.com/cbr_official" title="ВКонтакте"></a>
+  <a class="networks-circle_item _tw" href="https://twitter.com/bank_of_russia" title="Twitter"></a>
+  <a class="networks-circle_item _yt" href="https://www.youtube.com/user/BankofRussia" title="Youtube"></a>
+</div>
+                </div>
+            </div>
+            <div class="d-md-none link-above">
+                <div class="header_right"></div>
+            </div>
+            <div class="menu_content_container col-md with-centered-loader" data-cms-wholesite-placeholder="">
+            </div>
+        </div>
+    </div>
+</div>
+
+
+    <div class="home-content" id="content">
+        <!--index-->
+        <div class="offsetMenu">
+            <div class="container-fluid">
+                <div class="col-md-23 offset-md-1">
+                    <div class="page-content">
+                        
+<div class="indicators home-indicators d-none d-md-block" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:msxsl="urn:schemas-microsoft-com:xslt">
+  <div class="home-indicators_titles">
+    <div class="row">
+      <div class="col-md-2 offset-md-15">
+        <div class="indicator_col-title"><a href="/currency_base/daily/?UniDbQuery.Posted=True&amp;UniDbQuery.To=04.09.2020">
+								с 04.09.2020</a></div>
+      </div>
+      <div class="col-md-2">
+        <div class="indicator_col-title"><a href="/currency_base/daily/?UniDbQuery.Posted=True&amp;UniDbQuery.To=05.09.2020">
+								с 05.09.2020</a></div>
+      </div>
+    </div>
+  </div>
+  <div class="row flex-nowrap home-indicators_items">
+    <div class="col-md-3">
+      <div class="indicator">
+        <div class="indicator_el _big-value">
+          <div class="indicator_el_title" data-tooltip="" data-tooltip-class="mobile-hide" data-tooltip-type="black" data-tooltip-content="<p>Цель по инфляции устанавливается для показателя инфляции, отражающего темп прироста потребительских цен к соответствующему месяцу предыдущего года</p>">Цель по инфляции</div>
+          <div class="indicator_el_value">4,0%
+							</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-7 offset-md-1">
+      <div class="indicator indicator_rates">
+        <div class="indicator_el flex-nowrap">
+          <div class="indicator_el_title" data-tooltip="" data-tooltip-class="mobile-hide" data-tooltip-type="black" data-tooltip-content="<p>Показатель инфляции отражает темп прироста потребительских цен к соответствующему месяцу предыдущего года</p><p>(источник: <a href='https://www.gks.ru/price'>Федеральная служба государственной статистики</a>)</p>">Инфляция</div>
+          <div class="indicator_rates_value">
+            <div class="indicator_el_subtitle">июль 2020</div>
+            <div class="indicator_el_value">3,4%
+								</div>
+          </div>
+        </div>
+        <div class="indicator_el flex-nowrap">
+          <div class="indicator_el_title"><a href="/hd_base/KeyRate/" target="_blank">Ключевая ставка</a></div>
+          <div class="indicator_rates_value">
+            <div class="indicator_el_subtitle"><a href="/press/keypr/">
+												с 27.07.2020</a></div>
+            <div class="indicator_el_value">4,25%
+										</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-7 offset-md-1">
+      <div class="indicator courses">
+        <div class="indicator_el indicator_course" data-tooltip="" data-tooltip-class="mobile-hide" data-tooltip-type="black" data-tooltip-position="left+40 top" data-tooltip-content="Официальный курс Банка России">
+          <div class="row flex-nowrap">
+            <div class="col-12 col-md-3">
+              <div class="indicator_el_title">
+                <div class="indicator_course_cur indicator_course_cur_dollar"></div><span>Доллар США</span></div>
+            </div>
+            <div class="col-6 ml-auto col-md-2">
+              <div class="indicator_el_value mono-num">75,4680<small>₽</small></div>
+            </div>
+            <div class="col-6 col-md-2">
+              <div class="indicator_el_value mono-num">75,1823<small>₽</small></div>
+            </div>
+          </div>
+        </div>
+        <div class="indicator_el indicator_course" data-tooltip="" data-tooltip-class="mobile-hide" data-tooltip-type="black" data-tooltip-position="left+40 top" data-tooltip-content="Официальный курс Банка России">
+          <div class="row flex-nowrap">
+            <div class="col-12 col-md-3">
+              <div class="indicator_el_title">
+                <div class="indicator_course_cur indicator_course_cur_euro"></div><span>Евро</span></div>
+            </div>
+            <div class="col-6 ml-auto col-md-2">
+              <div class="indicator_el_value mono-num">89,1353<small>₽</small></div>
+            </div>
+            <div class="col-6 col-md-2">
+              <div class="indicator_el_value mono-num">89,0384<small>₽</small></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3 offset-md-1">
+      <div class="indicator">
+        <div class="indicator_el"><a class="indicator_all" href="key-indicators"><div class="indicator_all_icon"></div>
+            <div class="indicator_all_text">Все показатели</div></a></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="mobile-indicators d-block d-md-none" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:msxsl="urn:schemas-microsoft-com:xslt">
+  <div class="mobile-indicator">
+    <div class="mobile-indicator_el">
+      <div class="mobile-indicator_el_title">Цель по инфляции</div>
+      <div class="mobile-indicator_el_value">4,0%
+					</div>
+    </div>
+  </div>
+  <div class="mobile-indicator">
+    <div class="mobile-indicator_el">
+      <div class="mobile-indicator_el_title">
+						Инфляция - июль 2020</div>
+      <div class="mobile-indicator_el_value">3,4%
+					</div>
+    </div>
+  </div>
+  <div class="mobile-indicator">
+    <div class="mobile-indicator_el">
+      <div class="mobile-indicator_el_title">
+								Ключевая ставка - <a href="/hd_base/KeyRate/" target="_blank">
+									с 27.07.2020</a></div>
+      <div class="mobile-indicator_el_value">4,25%
+							</div>
+    </div>
+  </div>
+  <div class="mobile-indicator_courses">
+    <table>
+      <tbody>
+        <tr>
+          <th>Курсы валют</th>
+          <th><a href="/currency_base/daily/?UniDbQuery.Posted=True&amp;UniDbQuery.To=04.09.2020">
+									с 04.09.2020</a></th>
+          <th><a href="/currency_base/daily/?UniDbQuery.Posted=True&amp;UniDbQuery.To=05.09.2020">
+									с 05.09.2020</a></th>
+        </tr>
+        <tr>
+          <td>Доллар США</td>
+          <td>
+            <div class="value">75,4680<small>₽</small></div>
+          </td>
+          <td>
+            <div class="value">75,1823<small>₽</small></div>
+          </td>
+        </tr>
+        <tr>
+          <td>Евро</td>
+          <td>
+            <div class="value">89,1353<small>₽</small></div>
+          </td>
+          <td>
+            <div class="value">89,0384<small>₽</small></div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="mobile-indicator_all"><a href="key-indicators">Все показатели</a></div>
+</div>
+
+
+<script type='text/javascript'>
+//<![CDATA[
+
+var _PageLoadding = false;
+var _PageSize = 20;
+var _EventSourceURL = "/Queries/AjaxDataSource/80028";
+var _NewsSourceURL = "/Queries/AjaxDataSource/80059";
+
+$(function () {
+
+    var lang = $("meta[name='zoom:lang']").attr("content");
+    moment.locale(lang);
+
+    var pageCounter = 0;
+    var NewsPageCounter = 0;
+    var loadPageText = 'Загрузить еще';
+    var IsEng = 0;
+    if (lang === 'en') {
+        loadPageText = 'Load more';
+        IsEng = 1;
+    }
+
+    var idiv = $("#eventsPressRoll");
+    var vrap = idiv.parent();
+    var nexButton = $('<button id="_buttonLoadNextEvt" class="more-button _small" >' + loadPageText + '</button>');
+    nexButton.click(function () {
+        if (_PageLoadding) return;
+        _PageLoadding = true;
+        pageCounter++;
+        EPLoadPage(idiv, pageCounter, IsEng);
+    });
+
+    EPLoadPage(idiv, pageCounter, IsEng);
+    vrap.append(idiv);
+    vrap.append(nexButton);
+
+    var newsTopEl = $("#SiteNews");
+    var newsDiv = $('<div class="home-previews" id="news_previews-ajax-container"></div>');
+    newsTopEl.append(newsDiv);
+    var nexButtonNews = $('<button id="_buttonLoadNextPress" class="more-button _small">' + loadPageText + '</button>');
+    nexButtonNews.click(function () {
+        if (_PageLoadding) return;
+        _PageLoadding = true;
+        NewsPageCounter++;
+        NLoadPage(newsDiv, NewsPageCounter, IsEng);
+    });
+    newsTopEl.append(nexButtonNews);
+    NLoadPage(newsDiv, NewsPageCounter, IsEng);
+  	AutoTabSelect();
+  
+  
+});
+
+
+
+function AutoTabSelect(){
+  
+  
+  $(".tab").click(function(e){
+	var tabid=$(this).data("tabs-tab");
+	
+	$.cookie("SelectedTab", tabid, { 
+		expires: 1		
+	});
+
+   
+  });
+  if ($.cookie("SelectedTab")!==undefined){
+ 	var tabidSelect=$.cookie("SelectedTab");	
+	var tabObj=$(".tab[data-tabs-tab='"+tabidSelect+"']");
+	if (tabObj.length !== 0){
+		 $(".tab").removeClass("_active");	
+		 tabObj.click();
+		 tabObj.addClass("_active");
+	}
+  }  
+}
+
+function EPLoadPage(idiv, page, IsEng) { 
+    var more_button = idiv.parent().children(".more-button");
+    more_button.addClass("_loading");
+    $.ajax({
+        url: _EventSourceURL,
+        data: { IsEng: IsEng, Page: page },
+        cache: false
+    }).done(function (data) {
+
+        _PageLoadding = false;
+        more_button.removeClass("_loading");
+
+        if (data.length !== _PageSize) {
+            more_button.hide();
+        }
+
+        var firstOrImportant;
+        var fo = data.filter(function (item) {
+            return (item.ImageId > 0 || item.ImageCId > 0);
+        });
+
+
+        if (fo.length > 0 && page === 0) {
+
+            firstOrImportant = fo[0];
+
+            var top_link = "";
+            if (firstOrImportant.TBLType === 'press') {
+                top_link = '/press/pr/?file=' + firstOrImportant.doc_htm;
+            } else {
+                top_link = '/press/event/?id=' + firstOrImportant.doc_htm;
+            }
+            var dtm = moment(firstOrImportant.DT).format("DD MMMM YYYY");
+            if (moment(firstOrImportant.DT).format("DD.MM.YYYY") === moment().format("DD.MM.YYYY")) {
+                dtm = IsEng ? "Today" : "Сегодня";
+            }
+
+            // upload main row to top
+            var toprow = $("<div class=\"row\" />");
+            var subtop = $("<div class='col-md-11 news-main_texts' data-news-main-container />");
+            var date_zone = $("<div class='news-main_texts_top' />");
+            date_zone.append($("<div class='news_info'><div class='news_date'>" + dtm + "</div><div class='news_category'>" + decodeType(firstOrImportant.TBLType, IsEng) + "</div></div>"));
+            date_zone.append($("<div class='news-main_title'><a href='" + top_link + "'>" + firstOrImportant.name_doc + "</a></div>"));
+            subtop.append(date_zone);
+
+            var text_zone = $("<div class='news-main_texts_bottom' data-news-main-text='data-news-main-text' />");
+            if (firstOrImportant.SubTitle) {
+               // var subtitle = $("<div class='class='body-2' />");
+               // subtitle.html(firstOrImportant.SubTitle);
+               // text_zone.append(subtitle);
+                text_zone.html(firstOrImportant.SubTitle);
+            }
+            subtop.append(text_zone);
+            toprow.append(subtop);
+		  var image_zone=null;
+		  if (firstOrImportant.ImageId > 0) {
+            	 image_zone = $("<div class='col-md-11 offset-md-1'><a href='" + top_link + "' class= 'news-main_image " + (firstOrImportant.Video === 1 ? '_with-video' : '') + "' ><img src='/legacy/PhotoStore/getimgid/" + firstOrImportant.ImageId + ".png' alt='Изображение'></a></div>");
+		  
+		  }else{
+		  		// елси есть кроп то еего
+		  		if (firstOrImportant.ImageCId > 0){
+				  image_zone = $("<div class='col-md-11 offset-md-1'><a href='" + top_link + "' class= 'news-main_image " + (firstOrImportant.Video === 1 ? '_with-video' : '') + "'><img src='/legacy/PhotoStore/getimgid/" + firstOrImportant.ImageCId + ".png' alt='Изображение'></a></div>");
+			  	
+
+		  		}
+			}
+		  
+            toprow.append(image_zone);
+            var news_main = $("<div class='news-main' />");
+            news_main.append(toprow);
+            app.init(news_main);
+            $("#EventsAndPress").prepend(news_main);
+          
+        }
+
+
+        $.each(data, function (index, k) {
+            if (k === firstOrImportant) {
+
+                return null;
+            }
+            var dtm = moment(k.DT).format("DD MMMM YYYY");
+            if (moment(k.DT).format("DD.MM.YYYY") === moment().format("DD.MM.YYYY")) {
+                dtm = IsEng ? "Today" : "Сегодня";
+            }
+            var tpName = decodeType(k.TBLType, IsEng);
+
+            /*
+            if (k.Important === 1) {
+                tpName = IsEng  ? 'Important' : 'Важно';
+            }
+            */
+
+            var _link = '';
+            if (k.TBLType === 'press') {
+                _link = '/press/pr/?file=' + k.doc_htm;
+            } else {
+                _link = '/press/event/?id=' + k.doc_htm;
+            }
+            var press_root = $('<div class="news _in-feed news-speeches col-md-17"></div>');
+            var rtp = $('<div class="news_text"></div>');
+		  /*
+            if (k.ImageId > 0) {
+                rtp = $('<div class="news_text news_text col-md-11"></div>');
+            }
+*/
+            rtp.append($('<div class="news_info"><div class= "news_date"> ' + dtm + '</div><div class="news_category">' + tpName + '</div></div>'));
+            rtp.append($('<div class="news_title"><a href="' + _link + '">' + k.name_doc + '</a></div>'));
+            press_root.append(rtp);
+            if (k.ImageId > 0) {
+                press_root.append('<a href="' + _link + '" class="col-md-5 offset-md-1 news_image ' + (k.Video === 1 ? '_with-video' : '') + '"><img src="/legacy/PhotoStore/getimgid/' + k.ImageCId + '.png" alt=""></a>');
+            }else{
+		  		// елси есть кроп то еего
+		  		if (k.ImageCId > 0){
+			  	press_root.append('<a href="' + _link + '" class="col-md-5 offset-md-1 news_image ' + (k.Video === 1 ? '_with-video' : '') + '"><img src="/legacy/PhotoStore/getimgid/' + k.ImageCId + '.png" alt=""></a>');
+
+		  		}
+			}
+		  
+            idiv.append(press_root);
+           
+
+        });
+    }).fail(function (data) {
+        _PageLoadding = false;
+
+    });
+}
+
+var News_last_day;
+var NewsCol;
+
+function decodeType(name, IsEng) {
+
+    var tpName = '';
+    switch (name) {
+        case "events":
+            tpName = IsEng ? 'News' : 'Новость';
+            break;
+        case "performance":
+            tpName = IsEng ? 'Performance' : 'Выступление';
+            break;
+        case "interview":
+            tpName = IsEng ? 'Interview' : 'Интервью';
+            break;
+        case "press":
+            tpName = IsEng ? 'Press release' : 'Пресс-релиз';
+            break;
+        default:
+            tpName = IsEng ? 'News' : 'Новость';
+    }
+    return tpName;
+}
+
+function NLoadPage(idiv, page, IsEng) {
+    var more_button = idiv.parent().children(".more-button");
+    more_button.addClass("_loading");
+    $.ajax({
+        url: _NewsSourceURL,
+        data: { IsEng: IsEng, Page: page },
+        cache: false
+    }).done(function (data) {
+        _PageLoadding = false;
+        more_button.removeClass("_loading");
+        if (data.length !== _PageSize) {
+            more_button.hide();
+        }
+
+        divday = $('<div class="home-previews_day">');
+
+        $.each(data, function (index, k) {
+
+            if (k.TBLType === 'news') {
+
+                if (News_last_day !== k.DT) {
+                    News_last_day = k.DT;
+                    divday = $('<div class="home-previews_day">');
+                    homediv = $('<div class="row"/>');
+                    divday.append(homediv);
+                    dt = $('<div class="col-md-3"><div class="home-previews_day-date">' + moment(k.DT).format("DD MMMM") + '</div></div>');
+                    homediv.append(dt);
+                    NewsCol = $('<div class="col-md-19 offset-md-1"></div>');
+                    idiv.append(divday);
+                    homediv.append(NewsCol);
+                }
+
+                var press_root = $('<div class="home-previews_item"></div>');
+                var row = $('<div class="row"></div>');
+                row.append($(' <div class="col-md-1"><div class="home-previews_item-time">' + k.dateupdate + '</div></div>'));
+                var titleInfo = $('<div class="col-md-15 offset-md-1"><div class="home-previews_item-title"><a href="' + k.doc_htm + '">' + k.name_doc + '</a></div></div>');
+                row.append(titleInfo);
+                if (k.Important !== 0) {
+                    row.append($('<div class="home-previews_item-icon offset-md-1 icon-important"></div>'));
+                }
+                press_root.append(row);
+                if (k.MenuTitle !== null) {
+                    press_root.append($('<div class="offset-md-2 row home-previews_item-source_wrap"><div class="home-previews_item-source">' + k.MenuTitle + '</div></div>'));
+                }
+                NewsCol.append(press_root);
+            }
+        });
+    }).fail(function (data) {
+        _PageLoadding = false;
+
+    });
+
+}
+//]]
+</script>
+<div class="home_news">
+<div class="tabs_wrap home-sticky_parent" data-home-tabs>
+  <div class="home-sticky" data-home-sticky>
+<div class="d-none d-md-block">
+<div class="tabs home-tabs">
+<a class="tab _active" href="#" data-tabs-tab="1">Актуальные события</a><a class="tab" href="#" data-tabs-tab="2">Новое на&nbsp;сайте</a>
+<div class="tab _all"><a href="/news/" data-tabs-content="1">Все</a><a class="hide" href="/news/" data-tabs-content="2">Все</a></div>
+</div>
+</div>
+<div class="d-block d-md-none">
+<div class="tabs home-tabs">
+<div class="tab_title">
+<div class="tab_selected" data-tabs-mobile-selected>Актуальные события</div>
+<div class="tab _all"><a href="/news/" data-tabs-content="1">Все</a><a class="hide" href="/news/" data-tabs-content="2">Все</a></div>
+</div>
+<div class="tabs_items"><a class="tab _active" href="#" data-tabs-tab="1">Актуальные события</a><a class="tab" href="#" data-tabs-tab="2">Новое на&nbsp;сайте</a></div>
+</div>
+</div>
+ </div> 
+  <div class="home-sticky_compensation"></div>
+  
+<div data-tabs-content="1">
+
+<div class="news-section_content" id="EventsAndPress">
+<div class="row">
+<div class="news-speeches_wrap">
+<div id='eventsPressRoll'></div>
+</div>
+
+
+
+<div class="offset-md-1 col-md-5 sidebar">
+<div class="external-resources">
+<a class="external-resource" href="http://fincult.info/">
+<img class="no-vision-impaired-block" src="/StaticHtml/File/84766/logo_finance-culture.svg" alt="Финансовая культура">
+<div class="is-vision-impaired-block">Образовательный портал</div>
+</a><a class="external-resource" href="https://econs.online/">
+<img class="no-vision-impaired-block" src="/StaticHtml/File/84766/logo_econs.svg" alt="ЭКОНС">
+<div class="is-vision-impaired-block">Информационно-аналитический портал</div>
+</a><a class="external-resource" href="https://rjmf.econs.online/">
+<img class="no-vision-impaired-block" src="/StaticHtml/File/84766/logo_magazine-dengikredit.svg" alt="Журнал «Деньги и кредит»">
+<div class="is-vision-impaired-block">Журнал &laquo;Деньги и&nbsp;кредит&raquo;</div>
+</a>
+<a class="external-resource" href="http://old.cbr.ru/">
+<img class="no-vision-impaired-block" src="/StaticHtml/File/84766/oldsite_rus.svg" alt="Архив сайта">
+<div class="is-vision-impaired-block">Архив сайта</div>
+</a>
+</div>
+<div class="popular">
+<div class="popular_links">
+<div class="popular_link"><a href="/about_br/press/">Контакты для&nbsp;СМИ</a></div>
+<div class="popular_link"><a href="/about_br/publ/">Издания Банка России</a></div>
+							 <div class="popular_link"><a href="/calendar/">График публикаций</a></div>
+<div class="popular_link"><a href="/development/RSS/">RSS-каналы</a></div>
+							 
+</div>
+</div>
+</div>
+
+
+</div>
+</div>
+
+</div>
+<div class="hide" data-tabs-content="2"> 
+<div class="news-section_content" id="SiteNews"></div>
+
+</div>
+</div>
+
+</div>
+
+
+
+
+
+    <div class="materials">
+        <div class="block-title _with-dash materials_top">
+            <h2 class="h3 materials_title"><span class="referenceable" id="a_87403">Актуальные документы</span></h2>
+            <div class="materials_nav">
+                <div class="materials_nav_btn _prev swiper-button-disabled" tabindex="0" role="button" aria-label="Previous slide" aria-disabled="true"></div>
+                <div class="materials_nav_btn _next" tabindex="0" role="button" aria-label="Next slide" aria-disabled="false"></div>
+            </div>
+        </div>
+        <div class="materials_items">
+            <div class="swiper-container materials_gall swiper-container-initialized swiper-container-horizontal">
+                <div class="swiper-wrapper">
+                        <div class="swiper-slide">
+        <a class="material material-file pdf-format"
+           href="/Collection/Collection/File/27873/ar_2019.pdf">
+            <div class="material_title" data-line-cutter="8">Годовой отчет Банка России</div>
+            <div class="material_source">
+                    <div class="material_format icon-pdf"></div><span data-line-cutter="2"> 2019&#160;г.</span>
+            </div>
+        </a>
+    </div>
+
+    <div class="swiper-slide">
+        <a class="material material-file pdf-format"
+           href="/Content/Document/File/71220/main_directions.pdf">
+            <div class="material_title" data-line-cutter="8">Основные направления развития финансового рынка Российской Федерации на период 2019–2021 годов</div>
+            <div class="material_source">
+                    <div class="material_format icon-pdf"></div><span data-line-cutter="2"> </span>
+            </div>
+        </a>
+    </div>
+
+    <div class="swiper-slide">
+        <a class="material"
+           href="/analytics/dkp/ddcp/longread_3_31/">
+            <div class="material_title" data-line-cutter="8">Доклад о&#160;денежно-кредитной политике</div>
+            <div class="material_source">
+                    <span data-line-cutter="2"> Выпуск №&#160;3&#160;(31) • Июль</span>
+            </div>
+        </a>
+    </div>
+
+    <div class="swiper-slide">
+        <a class="material material-file pdf-format"
+           href="/Collection/Collection/File/27911/OFS_20-01.pdf">
+            <div class="material_title" data-line-cutter="8">Обзор финансовой стабильности</div>
+            <div class="material_source">
+                    <div class="material_format icon-pdf"></div><span data-line-cutter="2"> IV&#160;квартал&#160;2019&#160;г.&#160;– I&#160;квартал&#160;2020&#160;г.</span>
+            </div>
+        </a>
+    </div>
+
+    <div class="swiper-slide">
+        <a class="material"
+           href="/about_br/publ/ondkp/on_2020_2022/">
+            <div class="material_title" data-line-cutter="8">Основные направления единой государственной денежно-кредитной политики на 2020 год и период 2021 и 2022 годов</div>
+            <div class="material_source">
+                    <span data-line-cutter="2">www.cbr.ru </span>
+            </div>
+        </a>
+    </div>
+
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+<div class="home-banners d-none d-md-block">
+  <div class="home-banners_row _5-el"><a class="home-banner" href="/fintech/market_place/" title="Проект «Маркетплейс»"><div class="home-banner_image"><img src="/StaticHtml/File/81950/mp.svg" alt="Проект «Маркетплейс»"></div>
+      <div class="home-banner_text">Проект «Маркетплейс»</div></a><a class="home-banner" href="/PSystem/sfp/" title="Система быстрых платежей"><div class="home-banner_image"><img src="/StaticHtml/File/81950/sbp.svg" alt="Система быстрых платежей"></div>
+      <div class="home-banner_text">Система быстрых платежей</div></a><a class="home-banner" href="/develop/egulatory_load_optimization/" title="Оптимизация регуляторной нагрузки"><div class="home-banner_image"><img src="/StaticHtml/File/81950/scissors_y.svg" alt="Оптимизация регуляторной нагрузки"></div>
+      <div class="home-banner_text">Оптимизация регуляторной нагрузки</div></a><a class="home-banner" href="/mp/" title="Мониторинг предприятий"><div class="home-banner_image"><img src="/StaticHtml/File/81950/monitor.svg" alt="Мониторинг предприятий"></div>
+      <div class="home-banner_text">Мониторинг предприятий</div></a><a class="home-banner" href="/projects_xbrl/" title="Открытый стандарт отчетности"><div class="home-banner_image"><img src="/StaticHtml/File/81950/XBRL.svg" alt="Открытый стандарт отчетности"></div>
+      <div class="home-banner_text">Открытый стандарт отчетности</div></a></div></div>
+
+<div class="home-banners-wrap d-block d-md-none">
+  <div class="swiper-container" data-home-banners-gall>
+	<div class="swiper-wrapper">
+	  <div class="swiper-slide"><a class="home-banner" href="/fintech/market_place/" title="Проект «Маркетплейс»">
+		<div class="home-banner_image"><img src="/StaticHtml/File/81950/mp.svg" alt="Проект «Маркетплейс»"></div>
+		<div class="home-banner_text">Проект «Маркетплейс»</div></a></div>
+	  <div class="swiper-slide"><a class="home-banner" href="/PSystem/sfp/" title="Система быстрых платежей">
+		<div class="home-banner_image"><img src="/StaticHtml/File/81950/sbp.svg" alt="Система быстрых платежей"></div>
+		<div class="home-banner_text">Система быстрых платежей</div></a></div>
+	  <div class="swiper-slide"><a class="home-banner" href="/develop/egulatory_load_optimization/" title="Проект «Операционный день КО»">
+		<div class="home-banner_image"><img src="/StaticHtml/File/81950/scissors_y.svg" alt="Оптимизация регуляторной нагрузки"></div>
+		<div class="home-banner_text">Оптимизация регуляторной нагрузки</div></a></div>
+	  <div class="swiper-slide"><a class="home-banner" href="/mp/" title="Мониторинг предприятий">
+		<div class="home-banner_image"><img src="/StaticHtml/File/81950/monitor.svg" alt="Открытый стандарт отчетности"></div>
+		<div class="home-banner_text">Мониторинг предприятий</div></a></div>
+	  <div class="swiper-slide"><a class="home-banner" href="/projects_xbrl/" title="Открытый стандарт отчетности">
+		<div class="home-banner_image"><img src="/StaticHtml/File/81950/XBRL.svg" alt="Открытый стандарт отчетности"></div>
+		<div class="home-banner_text">Открытый стандарт отчетности</div></a></div>
+	</div>
+  </div> </div>
+
+
+                        
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!--/index-->
+    </div>
+
+    <footer class="footer" id="footer">
+        <div class="offsetMenu">
+            <div class="footer_main">
+                <div class="col-md-23 col-xl-22 offset-md-1 offset-xl-2">
+                    <div class="footer_top">
+                        <a class="footer_logo" href="/"></a>
+                        <div class="footer_up gotoUp">
+                            <div class="footer_up_title">Наверх</div>
+                            <div class="footer_up_icon"></div>
+                        </div>
+                    </div>
+                    
+<div class="footer_contacts">
+<div class="footer_address">ул. Неглинная, 12, Москва, 107016</div>
+<div class="footer_phones">
+<div class="footer_phone"><a class="footer_phone_val" href="tel:88003003000">8&nbsp;800 300-30-00</a><span>(круглосуточно, бесплатно для&nbsp;звонков из&nbsp;регионов России)</span></div>
+<div class="footer_phone"><a class="footer_phone_val" href="tel:+74993003000">+7&nbsp;499 300-30-00</a><span>(круглосуточно, в&nbsp;соответствии с&nbsp;тарифами вашего оператора)</span></div>
+<div class="footer_phone"><a class="footer_phone_val" href="tel:300">300</a><span>(круглосуточно, бесплатно для&nbsp;звонков с&nbsp;мобильных телефонов)</span></div>
+</div>
+</div>
+<div class="footer_main_block">
+<div class="footer_left-menu">
+<div class="footer_left-menu_item"><a href="/lk_uio/">Личный кабинет участников рынка</a></div>
+<div class="footer_left-menu_item"><a href="/about_br/irp/">Отношения с&nbsp;инвесторами</a></div>
+<div class="footer_left-menu_item"><a href="/rbr/list_inside/">Перечень инсайдерской информации Банка России</a></div>
+<div class="footer_left-menu_item"><a href="/analytics/na_vr/">Официальное опубликование нормативных актов Банка России</a></div>
+<div class="footer_left-menu_item"><a href="/project_na/">Проекты нормативных актов Банка России</a></div>
+<div class="footer_left-menu_item"><a href="/other/holidays/">Перечень нерабочих праздничных дней и&nbsp;перенесенных выходных дней</a></div>
+</div>
+<div class="networks-circle footer_networks">
+<a class="networks-circle_item _fb" href="https://www.facebook.com/cbr.ru/"></a>
+<a class="networks-circle_item _ig" href="https://www.instagram.com/cbrf_official/" title="Instagram"></a>
+<a class="networks-circle_item _vk" href="https://vk.com/cbr_official"></a>
+<a class="networks-circle_item _tw" href="https://twitter.com/bank_of_russia"></a>
+<a class="networks-circle_item _yt" href="https://www.youtube.com/user/BankofRussia"></a>
+</div>
+</div>
+<div class="footer_menu">
+<div class="footer_menu_items">
+<div class="footer_menu_item"><a href="/about/">О&nbsp;сайте</a></div>
+<div class="footer_menu_item"><a href="/contacts/">Контакты</a></div>
+<div class="footer_menu_item"><a href="/about_br/anticor/">Противодействие коррупции</a></div>
+<div class="footer_menu_item"><a href="/development/">Технические ресурсы</a></div>
+</div>
+			 <div class="footer_menu_item _visually-impaired"><a href="#" title="Версия для слабовидящих"><span class="visually-impaired-on">Версия для&nbsp;слабовидящих</span><span class="visually-impaired-off">Обычная версия</span></a></div>
+</div>
+
+
+                </div>
+            </div>
+            <div class="footer_bottom">
+                <div class="col-md-23 col-xl-22 offset-md-1 offset-xl-2 row">
+                    <div class="footer_bottom_text col-md-12 col-xl-11">&#169; Банк России, 2000–2020.</div>
+<div class="footer_bottom_aic col-md-11">Дизайн сайта — <a href="https://aic.ru" target="_blank"><img src="/common/images/icons/aic-logo.svg" /></a></div>
+
+
+                </div>
+            </div>
+        </div>
+    </footer>
+    
+        <div class="popup-cookies" data-popup-cookies>
+        <div class="popup-cookies_title">
+            На сайте Банка России используются файлы cookie
+        </div>
+        <div class="popup-cookies_subtitle">
+            Оставаясь на <a href="/">www.cbr.ru</a>, вы принимаете
+            <a href='/user_agreement/'>пользовательское соглашение</a>
+        </div>
+        <button class="btn _medium _blue " data-popup-cookies-btn>
+            Подтвердить
+        </button>
+    </div>
+
+
+    
+<!--[if IE 9]><script>$('body').addClass('ie9')</script><![endif]-->
+
+
+
+</body>
+</html>
