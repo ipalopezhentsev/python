@@ -6,3 +6,4 @@ requests
 pipdeptree #otherwise pip-sync will remove it
 pip-tools
 pytest
+pytest-cov
