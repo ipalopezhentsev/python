@@ -1,11 +1,17 @@
+import logging
 import xml.etree.ElementTree as ET
-from datetime import date
+import datetime
+from typing import Callable, Optional
+import investments.logsetup
 
 import requests
+import csv
 
-from investments.instruments import Bond, AmortizationScheduleEntry, CouponScheduleEntry
+from investments.instruments import Bond, AmortizationScheduleEntry, CouponScheduleEntry, OLHC, OLHCSeries
 
 ISS_URL = "https://iss.moex.com/iss/"
+logger = logging.getLogger(__name__)
+
 
 
 def load_coupon_schedule_xml(isin: str) -> str:
@@ -16,17 +22,17 @@ def load_coupon_schedule_xml(isin: str) -> str:
 
 def __parse_am_entry(am_entry) -> AmortizationScheduleEntry:
     str_date = am_entry.get("amortdate")
-    am_date = date.fromisoformat(str_date)
+    am_date = datetime.date.fromisoformat(str_date)
     value_prc = float(am_entry.get("valueprc"))
     value = float(am_entry.get("value"))
     return AmortizationScheduleEntry(am_date, value_prc, value)
 
 
 def __parse_coupon_entry(cp_entry) -> CouponScheduleEntry:
-    cp_date = date.fromisoformat(cp_entry.get("coupondate"))
+    cp_date = datetime.date.fromisoformat(cp_entry.get("coupondate"))
     str_rec_date = cp_entry.get("recorddate")
-    rec_date = date.fromisoformat(str_rec_date) if str_rec_date != "" else None
-    st_date = date.fromisoformat(cp_entry.get("startdate"))
+    rec_date = datetime.date.fromisoformat(str_rec_date) if str_rec_date != "" else None
+    st_date = datetime.date.fromisoformat(cp_entry.get("startdate"))
     val = float(cp_entry.get("value"))
     yearly_prc = float(cp_entry.get("valueprc"))
     return CouponScheduleEntry(cp_date, rec_date, st_date, val, yearly_prc)
@@ -51,3 +57,54 @@ def parse_coupon_schedule_xml(data: str) -> Bond:
 def load_bond(isin: str) -> Bond:
     xml = load_coupon_schedule_xml(isin)
     return parse_coupon_schedule_xml(xml)
+
+
+def parse_olhc_csv(instr: str, reply: str) -> OLHCSeries:
+    lines = reply.split("\n")[2:]
+    reader = csv.DictReader(lines, delimiter=";")
+    series = []
+    for row in reader:
+        try:
+            num_trades = int(row["NUMTRADES"])
+            date = datetime.date.fromisoformat(row["TRADEDATE"])
+            if num_trades != 0:
+                olhc = OLHC(date=date, open=float(row["OPEN"]),
+                            low=float(row["LOW"]), high=float(row["HIGH"]), close=float(row["CLOSE"]),
+                            num_trades=num_trades, volume=float(row["VOLRUR"]), waprice=float(row["WAPRICE"]))
+                series.append(olhc)
+            else:
+                logger.info(f"Skipping {date} for {instr} as it had no trades")
+
+        except ValueError as e:
+            raise ValueError(f"Error happened for row {row}", e)
+    return OLHCSeries(instr, series)
+
+
+def __load_partial_olhc_table_csv(instr: str, from_date: Optional[datetime.date]) -> OLHCSeries:
+    """Loads certain number of lines from from_date. So to read the whole available
+    data you must call this function until it returns empty table"""
+    fr = ""
+    if from_date is not None:
+        fr = f"?from={from_date.isoformat()}"
+    url = f"{ISS_URL}history/engines/currency/markets/selt/boards/cets/securities/{instr}/candleborders.csv{fr}"
+
+    # will return not more than 100 entries from the beginning of history
+    reply = requests.get(url).text
+    return parse_olhc_csv(instr, reply)
+
+
+def load_olhc_table(instr: str, from_date: Optional[datetime.date],
+                    partial_loader: Callable[[str, Optional[datetime.date]], OLHCSeries]
+                    = __load_partial_olhc_table_csv) -> OLHCSeries:
+    """Loads full history of rates of specified instrument, starting from from_date"""
+    series = OLHCSeries(instr, [])
+    date = from_date
+    while True:
+        logger.info(f"Loading {instr} from {date if date is not None else 'beginning'}")
+        addition = partial_loader(instr, date)
+        if addition.is_empty():
+            break
+        else:
+            series.append(addition)
+            date = addition.olhc_series[-1].date + datetime.timedelta(days=1)
+    return series

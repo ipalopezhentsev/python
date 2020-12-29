@@ -1,6 +1,6 @@
 from datetime import date, timedelta
 
-from investments.instruments import Bond, AmortizationScheduleEntry, CouponScheduleEntry, YEAR_BASE
+from investments.instruments import Bond, AmortizationScheduleEntry, CouponScheduleEntry, YEAR_BASE, OLHC, OLHCSeries
 import pytest
 
 
@@ -122,3 +122,101 @@ class TestBond:
         cps, ams = b.payments_since_date(date(2018, 5, 8))
         assert cps == [coupons[1]]
         assert ams == [amortizations[1]]
+
+
+class TestOLHC:
+    def test_cannot_create_olhc_with_low_greater_than_high(self):
+        with pytest.raises(ValueError):
+            OLHC(date.today(), open=10.0, low=9.0, high=8.0, close=11.0, num_trades=1, volume=10.0, waprice=9.0)
+
+    def test_cannot_create_olhc_with_open_not_within_high_and_low(self):
+        with pytest.raises(ValueError):
+            OLHC(date.today(), open=8.9, low=9.0, high=15.0, close=11.0, num_trades=1, volume=10.0, waprice=9.0)
+
+    def test_cannot_create_olhc_with_close_not_within_high_and_low(self):
+        with pytest.raises(ValueError):
+            OLHC(date.today(), open=10.0, low=9.0, high=15.0, close=16.0, num_trades=1, volume=10.0, waprice=9.0)
+
+    def test_cannot_create_olhc_with_waprice_not_within_high_and_low(self):
+        with pytest.raises(ValueError):
+            OLHC(date.today(), open=9.0, low=9.0, high=15.0, close=11.0, num_trades=1, volume=10.0, waprice=90.0)
+
+    def test_csv_parse_unparse(self):
+        olhc = OLHC(date.today(), open=9.0, low=9.0, high=15.0, close=11.0, num_trades=1, volume=10.0, waprice=12.0)
+        csv_row = olhc.to_csv_row()
+        olhc_parsed = OLHC.from_csv_row(csv_row)
+        assert olhc == olhc_parsed
+
+
+class TestOLHCSeries:
+    def test_can_create_empty_series(self):
+        series = OLHCSeries("instr", [])
+        assert series.is_empty()
+
+    def test_cannot_create_with_dates_not_ascending(self):
+        with pytest.raises(ValueError):
+            OLHCSeries("instr", [
+                OLHC(date(2020, 12, 5), open=9.0, low=9.0, high=15.0, close=11.0, num_trades=1, volume=10.0,
+                     waprice=13.0),
+                OLHC(date(2020, 12, 4), open=9.0, low=9.0, high=15.0, close=11.0, num_trades=1, volume=10.0,
+                     waprice=13.0)
+            ])
+
+    def test_can_create_good_instance(self):
+        series = OLHCSeries("instr", [
+            OLHC(date(2020, 12, 4), open=9.0, low=9.0, high=15.0, close=11.0, num_trades=1, volume=10.0, waprice=13.0),
+            OLHC(date(2020, 12, 5), open=9.0, low=9.0, high=15.0, close=11.0, num_trades=1, volume=10.0, waprice=13.0),
+        ])
+        assert not series.is_empty()
+
+    def test_cannot_append_non_adjacent_series(self):
+        with pytest.raises(ValueError) as e:
+            series1 = OLHCSeries("instr", [
+                OLHC(date(2020, 12, 4), open=9.0, low=9.0, high=15.0, close=11.0, num_trades=1, volume=10.0,
+                     waprice=13.0),
+                OLHC(date(2020, 12, 5), open=9.0, low=9.0, high=15.0, close=11.0, num_trades=1, volume=10.0,
+                     waprice=13.0),
+            ])
+            series2 = OLHCSeries("instr", [
+                OLHC(date(2020, 12, 5), open=9.0, low=9.0, high=15.0, close=11.0, num_trades=1, volume=10.0,
+                     waprice=13.0),
+                OLHC(date(2020, 12, 6), open=9.0, low=9.0, high=15.0, close=11.0, num_trades=1, volume=10.0,
+                     waprice=13.0),
+            ])
+            series1.append(series2)
+        assert "First date (2020-12-05) must be > 2020-12-05" in str(e.value)
+
+    def test_cannot_join_series_of_different_instruments(self):
+        with pytest.raises(ValueError) as e:
+            series1 = OLHCSeries("instr1", [])
+            series2 = OLHCSeries("instr2", [])
+            series1.append(series2)
+        assert "Instruments do not match" in str(e.value)
+
+    def test_can_grow_series(self):
+        series1 = OLHCSeries("instr", [
+            OLHC(date(2020, 12, 4), open=9.0, low=9.0, high=15.0, close=11.0, num_trades=1, volume=10.0, waprice=13.0),
+            OLHC(date(2020, 12, 5), open=9.0, low=9.0, high=15.0, close=11.0, num_trades=1, volume=10.0, waprice=13.0),
+        ])
+        series2 = OLHCSeries("instr", [
+            OLHC(date(2020, 12, 6), open=9.0, low=9.0, high=15.0, close=11.0, num_trades=1, volume=10.0, waprice=13.0),
+            OLHC(date(2020, 12, 7), open=9.0, low=9.0, high=15.0, close=11.0, num_trades=1, volume=10.0, waprice=13.0),
+        ])
+        series1.append(series2)
+        assert len(series1.olhc_series) == 4
+        assert series1.olhc_series[2:] == series2.olhc_series
+
+    def test_empty_processing(self):
+        s1 = OLHCSeries("i", [])
+        s1.append(OLHCSeries("i", []))
+        assert s1.is_empty()
+
+        s_tmp = OLHCSeries("i", [
+            OLHC(date(2020, 12, 6), open=9.0, low=9.0, high=15.0, close=11.0, num_trades=1, volume=10.0, waprice=13.0)])
+        s2 = OLHCSeries("i", [])
+        s2.append(s_tmp)
+        assert not s2.is_empty()
+        assert s2 == s_tmp
+
+        s_tmp.append(OLHCSeries("i", []))
+        assert not s_tmp.is_empty()

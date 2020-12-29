@@ -1,10 +1,11 @@
 from datetime import date
 import os
+from unittest.mock import MagicMock
 
 import pytest
 
 import investments.moex as m
-from investments.instruments import CouponScheduleEntry, AmortizationScheduleEntry
+from investments.instruments import CouponScheduleEntry, AmortizationScheduleEntry, OLHC, OLHCSeries
 
 
 class TestMoex:
@@ -56,11 +57,44 @@ class TestMoex:
                 print(coupon)
                 raise
 
+    def test_can_parse_olhc(self, sample_olhc_csv):
+        olhc: OLHCSeries = m.parse_olhc_csv("eurrub", sample_olhc_csv)
+        assert not olhc.is_empty()
+        s = olhc.olhc_series
+        assert s[0] == OLHC(date(2005, 6, 20), open=34.79, low=34.7701, high=34.83, close=34.81, num_trades=21,
+                            volume=157224489.9, waprice=34.8073)
+        assert s[-1] == OLHC(date(2005, 11, 7), open=34.97, low=33.925, high=34.97, close=34.01, num_trades=57,
+                             volume=142336864.5, waprice=34.0031)
+
+    def test_can_load_full_olhc_from_partials(self):
+        instr = "i"
+        olhc1 = OLHC(date(2005, 6, 20), open=10.0, low=5.0, high=15.0, close=12.0, num_trades=1,
+                     volume=100.0, waprice=11.0)
+        olhc2 = OLHC(date(2005, 6, 23), open=10.0, low=5.0, high=15.0, close=13.0, num_trades=2,
+                     volume=100.0, waprice=11.0)
+        partial_replies = [OLHCSeries(instr, [olhc1]),
+                           OLHCSeries(instr, [olhc2]),
+                           OLHCSeries(instr, [])]
+        mocked_loader = MagicMock(side_effect=partial_replies)
+        full_table = m.load_olhc_table(instr, None, mocked_loader)
+        assert not full_table.is_empty()
+        assert full_table.olhc_series == [olhc1, olhc2]
+
 
 @pytest.fixture()
 def sample_bond_xml():
+    with read_file("RU000A0JWSQ7.xml") as f:
+        yield f.read()
+
+
+@pytest.fixture()
+def sample_olhc_csv():
+    with read_file("eurrub.csv") as f:
+        yield f.read()
+
+
+def read_file(rel_name: str):
     # without abs path it cannot find file when running under unittest discover -
     # its current dir is two levels higher
-    test_file_abs = os.path.join(os.path.dirname(__file__), "RU000A0JWSQ7.xml")
-    with open(test_file_abs, "r", encoding="utf-8") as f:
-        yield f.read()
+    test_file_abs = os.path.join(os.path.dirname(__file__), rel_name)
+    return open(test_file_abs, "r", encoding="utf-8")
