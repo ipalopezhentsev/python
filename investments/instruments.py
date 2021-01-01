@@ -226,3 +226,15 @@ class OLHCSeries:
                 olhc = OLHC.from_csv_row(row)
                 series.append(olhc)
         return OLHCSeries(instr, series)
+
+
+@dataclass(frozen=True)
+class IntradayQuote:
+    instrument: str
+    # price of last trade
+    last: float
+    num_trades: int
+    # True if is trading at time of query
+    trading_status: bool
+    # time of latest trade?
+    time: datetime.time

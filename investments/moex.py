@@ -7,11 +7,11 @@ import investments.logsetup
 import requests
 import csv
 
-from investments.instruments import Bond, AmortizationScheduleEntry, CouponScheduleEntry, OLHC, OLHCSeries
+from investments.instruments import Bond, AmortizationScheduleEntry, CouponScheduleEntry, OLHC, OLHCSeries, \
+    IntradayQuote
 
 ISS_URL = "https://iss.moex.com/iss/"
 logger = logging.getLogger(__name__)
-
 
 
 def load_coupon_schedule_xml(isin: str) -> str:
@@ -108,3 +108,19 @@ def load_olhc_table(instr: str, from_date: Optional[datetime.date],
             series.append(addition)
             date = addition.olhc_series[-1].date + datetime.timedelta(days=1)
     return series
+
+
+def parse_intraday_quotes(reply: str) -> IntradayQuote:
+    root = ET.fromstring(reply)
+    row = root.findall(".//data[@id='marketdata']//row")[0]
+
+    is_trading = True if row.get("TRADINGSTATUS") == "Y" else False
+    return IntradayQuote(instrument=row.get("SECID"), last=float(row.get("LAST")),
+                         num_trades=int(row.get("NUMTRADES")), trading_status=is_trading,
+                         time=datetime.time.fromisoformat(row.get("TIME")))
+
+
+def load_intraday_quotes(instr: str) -> IntradayQuote:
+    url = f"{ISS_URL}engines/currency/markets/selt/boards/CETS/securities/{instr}.xml?iss.meta=off"
+    data = requests.get(url)
+    return parse_intraday_quotes(data.text)

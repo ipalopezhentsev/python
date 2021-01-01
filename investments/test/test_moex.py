@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, time
 import os
 from unittest.mock import MagicMock
 
@@ -9,7 +9,7 @@ from investments.instruments import CouponScheduleEntry, AmortizationScheduleEnt
 
 
 class TestMoex:
-    def test_can_parse_bond(self, sample_bond_xml):
+    def test_can_parse_bond(self, sample_bond_xml: str):
         bond = m.parse_coupon_schedule_xml(sample_bond_xml)
         assert bond.isin == "RU000A0JWSQ7"
         assert bond.name == "Мордовия 34003 обл."
@@ -57,7 +57,7 @@ class TestMoex:
                 print(coupon)
                 raise
 
-    def test_can_parse_olhc(self, sample_olhc_csv):
+    def test_can_parse_olhc(self, sample_olhc_csv: str):
         olhc: OLHCSeries = m.parse_olhc_csv("eurrub", sample_olhc_csv)
         assert not olhc.is_empty()
         s = olhc.olhc_series
@@ -80,16 +80,30 @@ class TestMoex:
         assert not full_table.is_empty()
         assert full_table.olhc_series == [olhc1, olhc2]
 
+    def test_can_parse_day_quotes(self, sample_today_rates_xml: str):
+        today_quotes = m.parse_intraday_quotes(sample_today_rates_xml)
+        assert today_quotes.instrument == "USD000UTSTOM"
+        assert today_quotes.last == 74.415
+        assert today_quotes.num_trades == 65036
+        assert today_quotes.trading_status is False
+        assert today_quotes.time == time(23, 49, 59)
+
 
 @pytest.fixture()
-def sample_bond_xml():
+def sample_bond_xml() -> str:
     with read_file("RU000A0JWSQ7.xml") as f:
         yield f.read()
 
 
 @pytest.fixture()
-def sample_olhc_csv():
+def sample_olhc_csv() -> str:
     with read_file("eurrub.csv") as f:
+        yield f.read()
+
+
+@pytest.fixture()
+def sample_today_rates_xml() -> str:
+    with read_file("USD000UTSTOM.xml") as f:
         yield f.read()
 
 
