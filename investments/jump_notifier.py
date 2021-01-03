@@ -192,8 +192,8 @@ def main():
     ctx = Ctx(initial_series, email, window_size, rel_eps, s, ticks_freq, saving_freq, None, None)
     s.enter(delay=0, priority=1, action=tick, argument=(ctx,))
 
-    def on_sigterm(a, b):
-        logger.info("Received SIGTERM, shutting down ", a, b)
+    def on_sigterm(sig, stack):
+        logger.info(f"Received SIGTERM, shutting down {sig}\n{stack}")
         # TODO: save series? but should not wait for next tick which can be too far away
         exit(1)
 
