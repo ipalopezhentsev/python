@@ -1,4 +1,5 @@
 import os
+import sys
 import signal
 import argparse
 import smtplib
@@ -193,7 +194,7 @@ def main():
     s.enter(delay=0, priority=1, action=tick, argument=(ctx,))
 
     def on_sigterm(sig, stack):
-        logger.info(f"Received SIGTERM, shutting down {sig}\n{stack}")
+        logger.info(f"Received SIGTERM ({sig}), shutting down\n{stack}")
         # TODO: save series? but should not wait for next tick which can be too far away
         exit(1)
 
@@ -202,5 +203,13 @@ def main():
     s.run()
 
 
+def handle_exception(exc_type, exc_value, exc_traceback):
+    if issubclass(exc_type, KeyboardInterrupt):
+        sys.__excepthook__(exc_type, exc_value, exc_traceback)
+        return
+    logger.error("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
+
+
 if __name__ == "__main__":
+    sys.excepthook = handle_exception
     main()
