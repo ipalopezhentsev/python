@@ -227,6 +227,15 @@ class OLHCSeries:
                 series.append(olhc)
         return OLHCSeries(instr, series)
 
+    def avg_of_last_elems(self, num_elems: int,
+                          field_getter: Callable[[OLHC], float] = lambda x: x.close) -> float:
+        """gets average of last num_elems values of this series, for field specified by field_getter"""
+        if len(self.olhc_series) < num_elems:
+            raise ValueError(f"Series has less than {num_elems}")
+        agg_val = 0.0
+        for olhc in self.olhc_series[-num_elems:]:
+            agg_val += field_getter(olhc)
+        return agg_val / num_elems
 
 @dataclass(frozen=True)
 class IntradayQuote:

@@ -220,3 +220,17 @@ class TestOLHCSeries:
 
         s_tmp.append(OLHCSeries("i", []))
         assert not s_tmp.is_empty()
+
+    def test_avg_of_last_elems(self):
+        close = [1.0, 2.0, 3.0, 4.0]
+        open = [2.0, 3.0, 4.0, 5.0]
+        olhcs = [OLHC(date(2021, 1, 1) + timedelta(days=i), open=open[i], low=0.0, high=10.0,
+                      close=close[i], num_trades=1, volume=1.0, waprice=1.0)
+                 for i in range(len(close))]
+        series = OLHCSeries("i", olhcs)
+        assert series.avg_of_last_elems(2) == (close[-2] + close[-1]) / 2
+        assert series.avg_of_last_elems(2, lambda olhc: olhc.open) == (open[-2] + open[-1]) / 2
+        assert series.avg_of_last_elems(4) == (close[0] + close[1] + close[2] + close[3]) / 4
+        with pytest.raises(ValueError):
+            series.avg_of_last_elems(5)
+

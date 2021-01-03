@@ -93,7 +93,7 @@ def __load_partial_olhc_table_csv(instr: str, from_date: Optional[datetime.date]
     return parse_olhc_csv(instr, reply)
 
 
-def load_olhc_table(instr: str, from_date: Optional[datetime.date],
+def load_olhc_table(instr: str, from_date: Optional[datetime.date] = None,
                     partial_loader: Callable[[str, Optional[datetime.date]], OLHCSeries]
                     = __load_partial_olhc_table_csv) -> OLHCSeries:
     """Loads full history of rates of specified instrument, starting from from_date"""
