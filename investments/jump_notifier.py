@@ -100,9 +100,10 @@ def get_mail_text(triggered_signals: Dict[str, str], errors: Dict[str, Exception
     msg = ""
     for instr, sig in triggered_signals.items():
         msg += f"{instr}: {sig}\n"
-    msg += "\n"
-    for instr, err in errors.items():
-        msg += f"{instr}: {err}"
+    if len(errors) != 0:
+        msg += "\n"
+        for instr, err in errors.items():
+            msg += f"{instr}: {err}\n"
     return header, msg
 
 
