@@ -172,7 +172,7 @@ def main():
                         help="Relative diff threshold between rate of last days (number is set by window size) "
                              "and today's intraday rate to send warning email")
     parser.add_argument("codes",
-                        help="Codes of instruments on MOEX (e.g. EUR_RUB__TOM USD000UTSTOM)."
+                        help="Codes of instruments on MOEX (e.g. EUR_RUB__TOM USD000UTSTOM). "
                              "To get it, check "
                              "https://iss.moex.com/iss/history/engines/currency/markets/selt/boards/cets/securities.csv"
                              " - you need SECID column", nargs="+", metavar="CODE")
@@ -190,7 +190,6 @@ def main():
     initial_series = get_initial_series(codes)
     ctx = Ctx(initial_series, email, window_size, rel_eps, s, ticks_freq, saving_freq, None, None)
     s.enter(delay=0, priority=1, action=tick, argument=(ctx,))
-    s.run()
 
     def on_sigterm(a, b):
         logger.info("Received SIGTERM, shutting down ", a, b)
@@ -198,6 +197,8 @@ def main():
         exit(1)
 
     signal.signal(signal.SIGTERM, on_sigterm)
+
+    s.run()
 
 
 if __name__ == "__main__":
