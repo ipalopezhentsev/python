@@ -149,7 +149,7 @@ class OHLC:
     low: float
     close: float
     num_trades: int
-    """in roubles, even for FX deals"""
+    """in roubles (FX), in lots (bonds, shares)"""
     volume: float
     """average price in this interval weighted by volume of trades inside this interval"""
     waprice: float
@@ -163,8 +163,9 @@ class OHLC:
             raise ValueError(f"Open ({self.open}) must be between Low ({self.low}) and High ({self.high})")
         if not (self.low <= self.close <= self.high):
             raise ValueError(f"Close ({self.close}) must be between Low ({self.low}) and High ({self.high})")
-        if not (self.low <= self.waprice <= self.high):
-            raise ValueError(f"WAPrice ({self.waprice}) must be between Low ({self.low}) and High ({self.high})")
+        # cannot check this as many bonds violate it
+        # if not (self.low <= self.waprice <= self.high):
+        #     raise ValueError(f"WAPrice ({self.waprice}) must be between Low ({self.low}) and High ({self.high})")
 
     def to_csv_row(self) -> Mapping[str, Any]:
         return {field_date: self.date.isoformat(), field_open: str(self.open), field_high: str(self.high),
@@ -181,7 +182,8 @@ class OHLC:
 
 @dataclass(frozen=True)
 class OHLCSeries:
-    instrument: str
+    """it's meant to be just string, to not bring dependency on MOEX classes via Instrument"""
+    instr_code: str
     """ordered by date ascending"""
     ohlc_series: List[OHLC]
 
@@ -199,8 +201,8 @@ class OHLCSeries:
     def append(self, other: OHLCSeries):
         """appends to this instance contents of the other table.
         Its dates must not intersect our dates and be higher than our last date."""
-        if other.instrument != self.instrument:
-            raise ValueError(f"Instruments do not match: {self.instrument} vs {self.instrument}")
+        if other.instr_code != self.instr_code:
+            raise ValueError(f"Instruments do not match: {self.instr_code} vs {self.instr_code}")
         if other.is_empty():
             return
         if not self.is_empty():
@@ -220,14 +222,14 @@ class OHLCSeries:
 
     @staticmethod
     def load_from_csv(filename) -> OHLCSeries:
-        instr = os.path.splitext(os.path.basename(filename))[0]
+        instr_code = os.path.splitext(os.path.basename(filename))[0]
         series: List[OHLC] = []
         with open(filename, 'r', newline='') as f:
             reader = csv.DictReader(f)
             for row in reader:
                 ohlc = OHLC.from_csv_row(row)
                 series.append(ohlc)
-        return OHLCSeries(instr, series)
+        return OHLCSeries(instr_code, series)
 
     def avg_of_last_elems(self, num_elems: int,
                           field_getter: Callable[[OHLC], float] = lambda x: x.close) -> float:

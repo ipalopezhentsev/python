@@ -57,8 +57,54 @@ class TestMoex:
                 print(coupon)
                 raise
 
+
+
+@pytest.fixture()
+def sample_bond_xml() -> str:
+    with read_file("RU000A0JWSQ7.xml") as f:
+        yield f.read()
+
+
+
+
+def read_file(rel_name: str):
+    # without abs path it cannot find file when running under unittest discover -
+    # its current dir is two levels higher
+    test_file_abs = os.path.join(os.path.dirname(__file__), rel_name)
+    return open(test_file_abs, "r", encoding="utf-8")
+
+
+class TestInstruments:
+    def test_cannot_create_base_class(self):
+        with pytest.raises(TypeError) as e:
+            i = m.Instrument("123")
+
+    def test_hash_equals(self):
+        fx1 = m.FXInstrument("1234")
+        fx2 = m.FXInstrument("1234")
+        assert fx1 == fx2
+        b1 = m.BondInstrument("1234")
+        assert fx1 != b1
+        fx3 = m.FXInstrument("234")
+        assert fx1 != fx3
+
+        b2 = m.BondInstrument("1234")
+        assert b1 == b2
+        b3 = m.BondInstrument("789")
+        assert b1 != b3
+
+        s1 = m.ShareInstrument("1234")
+        assert b1 != s1
+        s2 = m.ShareInstrument("1234")
+        assert s1 == s2
+        s3 = m.ShareInstrument("567")
+        assert s1 != s3
+
+        assert str(fx1) == fx1.code
+
     def test_can_parse_ohlc(self, sample_ohlc_csv):
-        ohlc: OHLCSeries = m.parse_ohlc_csv("eurrub", sample_ohlc_csv)
+        inst = m.FXInstrument("eurrub")
+        ohlc: OHLCSeries = inst._parse_ohlc_csv(sample_ohlc_csv)
         assert not ohlc.is_empty()
         s = ohlc.ohlc_series
         assert s[0] == OHLC(date(2005, 6, 20), open=34.79, low=34.7701, high=34.83, close=34.81, num_trades=21,
@@ -67,33 +113,28 @@ class TestMoex:
                              volume=142336864.5, waprice=34.0031)
 
     def test_can_load_full_ohlc_from_partials(self):
-        instr = "i"
+        instr = m.FXInstrument("i")
         ohlc1 = OHLC(date(2005, 6, 20), open=10.0, low=5.0, high=15.0, close=12.0, num_trades=1,
                      volume=100.0, waprice=11.0)
         ohlc2 = OHLC(date(2005, 6, 23), open=10.0, low=5.0, high=15.0, close=13.0, num_trades=2,
                      volume=100.0, waprice=11.0)
-        partial_replies = [OHLCSeries(instr, [ohlc1]),
-                           OHLCSeries(instr, [ohlc2]),
-                           OHLCSeries(instr, [])]
+        partial_replies = [OHLCSeries(instr.code, [ohlc1]),
+                           OHLCSeries(instr.code, [ohlc2]),
+                           OHLCSeries(instr.code, [])]
         mocked_loader = MagicMock(side_effect=partial_replies)
-        full_table = m.load_ohlc_table(instr, None, mocked_loader)
+
+        full_table = instr.load_ohlc_table(None, mocked_loader)
         assert not full_table.is_empty()
         assert full_table.ohlc_series == [ohlc1, ohlc2]
 
     def test_can_parse_day_quotes(self, sample_today_rates_xml: str):
-        today_quotes = m.parse_intraday_quotes(sample_today_rates_xml)
+        instr = m.FXInstrument("i")
+        today_quotes = instr._parse_intraday_quotes(sample_today_rates_xml)
         assert today_quotes.instrument == "USD000UTSTOM"
         assert today_quotes.last == 74.415
         assert today_quotes.num_trades == 65036
         assert today_quotes.is_trading is False
         assert today_quotes.time == time(23, 49, 59)
-
-
-@pytest.fixture()
-def sample_bond_xml() -> str:
-    with read_file("RU000A0JWSQ7.xml") as f:
-        yield f.read()
-
 
 @pytest.fixture()
 def sample_ohlc_csv() -> str:
@@ -105,10 +146,3 @@ def sample_ohlc_csv() -> str:
 def sample_today_rates_xml() -> str:
     with read_file("USD000UTSTOM.xml") as f:
         yield f.read()
-
-
-def read_file(rel_name: str):
-    # without abs path it cannot find file when running under unittest discover -
-    # its current dir is two levels higher
-    test_file_abs = os.path.join(os.path.dirname(__file__), rel_name)
-    return open(test_file_abs, "r", encoding="utf-8")
