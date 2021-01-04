@@ -223,7 +223,7 @@ def main():
     def on_sigterm(sig, stack):
         logger.info(f"Received SIGTERM ({sig}), shutting down\n{stack}")
         # TODO: save series? but should not wait for next tick which can be too far away
-        exit(1)
+        exit(0)
 
     signal.signal(signal.SIGTERM, on_sigterm)
 
