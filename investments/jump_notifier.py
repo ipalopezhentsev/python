@@ -59,7 +59,8 @@ def refresh_series(cur_series: Dict[moex.Instrument, instruments.OHLCSeries]) \
 
 def get_triggered_signals(series: Dict[moex.Instrument, instruments.OHLCSeries],
                           window_size: int, rel_eps: float) -> Dict[moex.Instrument, str]:
-    # TODO: for bonds: add notification its price gets < 100
+    # TODO: for bonds: add notification its price gets < 100.
+    # TODO: add string for not triggered instruments so we can include them to mail too (for info)
     res = {}
     for instr, ser in series.items():
         quote = instr.load_intraday_quotes()
