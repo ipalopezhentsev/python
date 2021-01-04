@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 import pytest
 
 import investments.moex as m
-from investments.instruments import CouponScheduleEntry, AmortizationScheduleEntry, OLHC, OLHCSeries
+from investments.instruments import CouponScheduleEntry, AmortizationScheduleEntry, OHLC, OHLCSeries
 
 
 class TestMoex:
@@ -57,35 +57,35 @@ class TestMoex:
                 print(coupon)
                 raise
 
-    def test_can_parse_olhc(self, sample_olhc_csv: str):
-        olhc: OLHCSeries = m.parse_olhc_csv("eurrub", sample_olhc_csv)
-        assert not olhc.is_empty()
-        s = olhc.olhc_series
-        assert s[0] == OLHC(date(2005, 6, 20), open=34.79, low=34.7701, high=34.83, close=34.81, num_trades=21,
+    def test_can_parse_ohlc(self, sample_ohlc_csv):
+        ohlc: OHLCSeries = m.parse_ohlc_csv("eurrub", sample_ohlc_csv)
+        assert not ohlc.is_empty()
+        s = ohlc.ohlc_series
+        assert s[0] == OHLC(date(2005, 6, 20), open=34.79, low=34.7701, high=34.83, close=34.81, num_trades=21,
                             volume=157224489.9, waprice=34.8073)
-        assert s[-1] == OLHC(date(2005, 11, 7), open=34.97, low=33.925, high=34.97, close=34.01, num_trades=57,
+        assert s[-1] == OHLC(date(2005, 11, 7), open=34.97, low=33.925, high=34.97, close=34.01, num_trades=57,
                              volume=142336864.5, waprice=34.0031)
 
-    def test_can_load_full_olhc_from_partials(self):
+    def test_can_load_full_ohlc_from_partials(self):
         instr = "i"
-        olhc1 = OLHC(date(2005, 6, 20), open=10.0, low=5.0, high=15.0, close=12.0, num_trades=1,
+        ohlc1 = OHLC(date(2005, 6, 20), open=10.0, low=5.0, high=15.0, close=12.0, num_trades=1,
                      volume=100.0, waprice=11.0)
-        olhc2 = OLHC(date(2005, 6, 23), open=10.0, low=5.0, high=15.0, close=13.0, num_trades=2,
+        ohlc2 = OHLC(date(2005, 6, 23), open=10.0, low=5.0, high=15.0, close=13.0, num_trades=2,
                      volume=100.0, waprice=11.0)
-        partial_replies = [OLHCSeries(instr, [olhc1]),
-                           OLHCSeries(instr, [olhc2]),
-                           OLHCSeries(instr, [])]
+        partial_replies = [OHLCSeries(instr, [ohlc1]),
+                           OHLCSeries(instr, [ohlc2]),
+                           OHLCSeries(instr, [])]
         mocked_loader = MagicMock(side_effect=partial_replies)
-        full_table = m.load_olhc_table(instr, None, mocked_loader)
+        full_table = m.load_ohlc_table(instr, None, mocked_loader)
         assert not full_table.is_empty()
-        assert full_table.olhc_series == [olhc1, olhc2]
+        assert full_table.ohlc_series == [ohlc1, ohlc2]
 
     def test_can_parse_day_quotes(self, sample_today_rates_xml: str):
         today_quotes = m.parse_intraday_quotes(sample_today_rates_xml)
         assert today_quotes.instrument == "USD000UTSTOM"
         assert today_quotes.last == 74.415
         assert today_quotes.num_trades == 65036
-        assert today_quotes.trading_status is False
+        assert today_quotes.is_trading is False
         assert today_quotes.time == time(23, 49, 59)
 
 
@@ -96,7 +96,7 @@ def sample_bond_xml() -> str:
 
 
 @pytest.fixture()
-def sample_olhc_csv() -> str:
+def sample_ohlc_csv() -> str:
     with read_file("eurrub.csv") as f:
         yield f.read()
 

@@ -13,7 +13,7 @@ def main():
                                       " - you need SECID column", nargs="+", metavar="CODE")
     args = parser.parse_args()
     for code in args.codes:
-        olhc_series = investments.moex.load_olhc_table(code, from_date=None)
+        olhc_series = investments.moex.load_ohlc_table(code, from_date=None)
         olhc_series.save_to_csv(code + ".csv")
 
 

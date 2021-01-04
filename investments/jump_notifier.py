@@ -6,7 +6,7 @@ import smtplib
 from dataclasses import dataclass
 from email.mime.text import MIMEText
 import sched
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Set
 
 from investments import moex, instruments
 import logging
@@ -21,35 +21,35 @@ def code_to_filename(code: str):
     return code + ".csv"
 
 
-def get_initial_series(codes: List[str]) -> Dict[str, instruments.OLHCSeries]:
+def get_initial_series(codes: List[str]) -> Dict[str, instruments.OHLCSeries]:
     res = {}
     for code in codes:
         try:
             fname = code_to_filename(code)
             if os.path.exists(fname):
-                series = instruments.OLHCSeries.load_from_csv(fname)
+                series = instruments.OHLCSeries.load_from_csv(fname)
             else:
-                series = instruments.OLHCSeries(code, [])
+                series = instruments.OHLCSeries(code, [])
         except Exception as e:
             logger.error(f"Error loading initial data for {code}", exc_info=e, stack_info=True)
             # give it chance to load from http
-            series = instruments.OLHCSeries(code, [])
+            series = instruments.OHLCSeries(code, [])
         res[code] = series
     return res
 
 
-def refresh_series(cur_series: Dict[str, instruments.OLHCSeries]) \
-        -> (Dict[str, instruments.OLHCSeries], Dict[str, Exception]):
+def refresh_series(cur_series: Dict[str, instruments.OHLCSeries]) \
+        -> (Dict[str, instruments.OHLCSeries], Dict[str, Exception]):
     """gets new entries into series from web. Returns dict of instrument to loading error"""
     good_series = {}
     errors = {}
     for instr, series in cur_series.items():
         try:
             if not series.is_empty():
-                from_date = series.olhc_series[-1].date + one_day
+                from_date = series.ohlc_series[-1].date + one_day
             else:
                 from_date = None
-            addition = moex.load_olhc_table(instr, from_date)
+            addition = moex.load_ohlc_table(instr, from_date)
             series.append(addition)
             good_series[instr] = series
         except Exception as ex:
@@ -57,19 +57,26 @@ def refresh_series(cur_series: Dict[str, instruments.OLHCSeries]) \
     return good_series, errors
 
 
-def get_triggered_signals(series: Dict[str, instruments.OLHCSeries],
+def get_triggered_signals(series: Dict[str, instruments.OHLCSeries],
                           window_size: int, rel_eps: float) -> Dict[str, str]:
     res = {}
     for instr, ser in series.items():
         quote = moex.load_intraday_quotes(instr)
+        if not quote.is_trading:
+            logger.info(f"Skipping {instr} as it's not currently trading")
+            continue
         avg_of_last_days = ser.avg_of_last_elems(window_size)
-        rel_diff = (quote.last - avg_of_last_days) / max(quote.last, avg_of_last_days)
+        rate = quote.last
+        rel_diff = (rate - avg_of_last_days) / max(rate, avg_of_last_days)
         if rel_diff > rel_eps:
-            res[instr] = f"Jump UP {round(rel_diff * 100.0, 2)}% to {quote.last} " \
+            res[instr] = f"Jump UP {round(rel_diff * 100.0, 2)}% to {rate} " \
                          f"from average of last {window_size} days {avg_of_last_days}"
         elif rel_diff < -rel_eps:
-            res[instr] = f"Jump DOWN {round(rel_diff * 100.0, 2)}% to {quote.last} " \
+            res[instr] = f"Jump DOWN {round(rel_diff * 100.0, 2)}% to {rate} " \
                          f"from average of last {window_size} days {avg_of_last_days}"
+        else:
+            logger.info(f"{instr} intraday price {rate} did not jump {rel_eps * 100.0}% over last "
+                        f"{window_size} days average of {avg_of_last_days}")
 
     return res
 
@@ -110,7 +117,7 @@ def get_mail_text(triggered_signals: Dict[str, str], errors: Dict[str, Exception
 
 @dataclass
 class Ctx:
-    cur_series: Dict[str, instruments.OLHCSeries]
+    cur_series: Dict[str, instruments.OHLCSeries]
     email: str
     window_size: int
     rel_eps: float
@@ -119,6 +126,7 @@ class Ctx:
     saving_freq: datetime.timedelta
     time_last_save: Optional[datetime.datetime]
     time_last_email_sent: Optional[datetime.datetime]
+    codes_last_sent: Optional[Set[str]]
 
 
 def tick(ctx: Ctx):
@@ -127,14 +135,17 @@ def tick(ctx: Ctx):
     try:
         good_series, errors = refresh_series(ctx.cur_series)
         triggered_signals = get_triggered_signals(good_series, ctx.window_size, ctx.rel_eps)
-        # send not more than 1 warning per day
-        if (len(triggered_signals) != 0 or len(errors) != 0) and \
-                (ctx.time_last_email_sent is None or now.date() != ctx.time_last_email_sent.date()):
+        # send not more than 1 warning per day (except case when more series get triggered through the day)
+        not_duplicate = ctx.time_last_email_sent is None or now.date() != ctx.time_last_email_sent.date() \
+            or ctx.codes_last_sent is None or ctx.codes_last_sent != triggered_signals.keys()
+
+        if (len(triggered_signals) != 0 or len(errors) != 0) and not_duplicate:
             (header, msg) = get_mail_text(triggered_signals, errors)
             logger.info(header)
             logger.info(msg)
             send_mail(ctx.email, header, msg)
             ctx.time_last_email_sent = now
+            ctx.codes_last_sent = triggered_signals.keys()
         else:
             logger.info("Skip sending email as nothing to report or report was already sent today")
 
@@ -150,7 +161,7 @@ def tick(ctx: Ctx):
         logger.info("End tick")
 
 
-def save_series(series: Dict[str, instruments.OLHCSeries]):
+def save_series(series: Dict[str, instruments.OHLCSeries]):
     for instr, ser in series.items():
         try:
             fname = code_to_filename(instr)
@@ -190,7 +201,7 @@ def main():
 
     s = sched.scheduler()
     initial_series = get_initial_series(codes)
-    ctx = Ctx(initial_series, email, window_size, rel_eps, s, ticks_freq, saving_freq, None, None)
+    ctx = Ctx(initial_series, email, window_size, rel_eps, s, ticks_freq, saving_freq, None, None, None)
     s.enter(delay=0, priority=1, action=tick, argument=(ctx,))
 
     def on_sigterm(sig, stack):

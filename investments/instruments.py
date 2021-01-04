@@ -137,18 +137,19 @@ field_close = "CLOSE"
 field_num_trades = "NUM_TRADES"
 field_volume = "VOLUME"
 field_waprice = "WAPRICE"
-olhc_fieldnames = [field_date, field_open, field_low, field_high, field_close,
+ohlc_fieldnames = [field_date, field_open, field_high, field_low, field_close,
                    field_num_trades, field_volume, field_waprice]
 
 
 @dataclass(frozen=True)
-class OLHC:
+class OHLC:
     date: datetime.date
     open: float
-    low: float
     high: float
+    low: float
     close: float
     num_trades: int
+    """in roubles, even for FX deals"""
     volume: float
     """average price in this interval weighted by volume of trades inside this interval"""
     waprice: float
@@ -166,35 +167,36 @@ class OLHC:
             raise ValueError(f"WAPrice ({self.waprice}) must be between Low ({self.low}) and High ({self.high})")
 
     def to_csv_row(self) -> Mapping[str, Any]:
-        return {field_date: self.date.isoformat(), field_open: str(self.open), field_low: str(self.low),
-                field_high: str(self.high), field_close: str(self.close), field_num_trades: str(self.num_trades),
+        return {field_date: self.date.isoformat(), field_open: str(self.open), field_high: str(self.high),
+                field_low: str(self.low), field_close: str(self.close), field_num_trades: str(self.num_trades),
                 field_volume: str(self.volume), field_waprice: str(self.waprice)}
 
     @staticmethod
-    def from_csv_row(row: Mapping[str, Any]) -> OLHC:
-        return OLHC(datetime.date.fromisoformat(row[field_date]), float(row[field_open]), float(row[field_low]),
-                    float(row[field_high]), float(row[field_close]), int(row[field_num_trades]),
-                    float(row[field_volume]), float(row[field_waprice]))
+    def from_csv_row(row: Mapping[str, Any]) -> OHLC:
+        return OHLC(date=datetime.date.fromisoformat(row[field_date]), open=float(row[field_open]),
+                    high=float(row[field_high]), low=float(row[field_low]), close=float(row[field_close]),
+                    num_trades=int(row[field_num_trades]), volume=float(row[field_volume]),
+                    waprice=float(row[field_waprice]))
 
 
 @dataclass(frozen=True)
-class OLHCSeries:
+class OHLCSeries:
     instrument: str
     """ordered by date ascending"""
-    olhc_series: List[OLHC]
+    ohlc_series: List[OHLC]
 
     def __post_init__(self):
         prev_date: Optional[datetime.date] = None
-        for entry in self.olhc_series:
+        for entry in self.ohlc_series:
             cur_date = entry.date
             if prev_date is not None and prev_date >= cur_date:
                 raise ValueError(f"Series must have ascending dates, they are not: {prev_date} vs {cur_date}")
             prev_date = cur_date
 
     def is_empty(self):
-        return len(self.olhc_series) == 0
+        return len(self.ohlc_series) == 0
 
-    def append(self, other: OLHCSeries):
+    def append(self, other: OHLCSeries):
         """appends to this instance contents of the other table.
         Its dates must not intersect our dates and be higher than our last date."""
         if other.instrument != self.instrument:
@@ -202,40 +204,41 @@ class OLHCSeries:
         if other.is_empty():
             return
         if not self.is_empty():
-            our_last_date: datetime.date = self.olhc_series[-1].date
-            their_last_date: datetime.date = other.olhc_series[0].date
+            our_last_date: datetime.date = self.ohlc_series[-1].date
+            their_last_date: datetime.date = other.ohlc_series[0].date
             if our_last_date >= their_last_date:
                 raise ValueError(f"First date ({their_last_date}) must be > {our_last_date}")
-        self.olhc_series.extend(other.olhc_series)
+        self.ohlc_series.extend(other.ohlc_series)
 
     def save_to_csv(self, filename):
         with open(filename, 'w', newline='') as f:
-            writer = csv.DictWriter(f, fieldnames=olhc_fieldnames)
+            writer = csv.DictWriter(f, fieldnames=ohlc_fieldnames)
             writer.writeheader()
-            for olhc in self.olhc_series:
-                row = olhc.to_csv_row()
+            for ohlc in self.ohlc_series:
+                row = ohlc.to_csv_row()
                 writer.writerow(row)
 
     @staticmethod
-    def load_from_csv(filename) -> OLHCSeries:
+    def load_from_csv(filename) -> OHLCSeries:
         instr = os.path.splitext(os.path.basename(filename))[0]
-        series: List[OLHC] = []
+        series: List[OHLC] = []
         with open(filename, 'r', newline='') as f:
             reader = csv.DictReader(f)
             for row in reader:
-                olhc = OLHC.from_csv_row(row)
-                series.append(olhc)
-        return OLHCSeries(instr, series)
+                ohlc = OHLC.from_csv_row(row)
+                series.append(ohlc)
+        return OHLCSeries(instr, series)
 
     def avg_of_last_elems(self, num_elems: int,
-                          field_getter: Callable[[OLHC], float] = lambda x: x.close) -> float:
+                          field_getter: Callable[[OHLC], float] = lambda x: x.close) -> float:
         """gets average of last num_elems values of this series, for field specified by field_getter"""
-        if len(self.olhc_series) < num_elems:
+        if len(self.ohlc_series) < num_elems:
             raise ValueError(f"Series has less than {num_elems}")
         agg_val = 0.0
-        for olhc in self.olhc_series[-num_elems:]:
-            agg_val += field_getter(olhc)
+        for ohlc in self.ohlc_series[-num_elems:]:
+            agg_val += field_getter(ohlc)
         return agg_val / num_elems
+
 
 @dataclass(frozen=True)
 class IntradayQuote:
@@ -244,6 +247,6 @@ class IntradayQuote:
     last: float
     num_trades: int
     # True if is trading at time of query
-    trading_status: bool
+    is_trading: bool
     # time of latest trade?
     time: datetime.time

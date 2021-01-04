@@ -1,6 +1,6 @@
 from datetime import date, timedelta
 
-from investments.instruments import Bond, AmortizationScheduleEntry, CouponScheduleEntry, YEAR_BASE, OLHC, OLHCSeries
+from investments.instruments import Bond, AmortizationScheduleEntry, CouponScheduleEntry, YEAR_BASE, OHLC, OHLCSeries
 import pytest
 
 
@@ -124,63 +124,63 @@ class TestBond:
         assert ams == [amortizations[1]]
 
 
-class TestOLHC:
-    def test_cannot_create_olhc_with_low_greater_than_high(self):
+class TestOHLC:
+    def test_cannot_create_ohlc_with_low_greater_than_high(self):
         with pytest.raises(ValueError):
-            OLHC(date.today(), open=10.0, low=9.0, high=8.0, close=11.0, num_trades=1, volume=10.0, waprice=9.0)
+            OHLC(date.today(), open=10.0, low=9.0, high=8.0, close=11.0, num_trades=1, volume=10.0, waprice=9.0)
 
-    def test_cannot_create_olhc_with_open_not_within_high_and_low(self):
+    def test_cannot_create_ohlc_with_open_not_within_high_and_low(self):
         with pytest.raises(ValueError):
-            OLHC(date.today(), open=8.9, low=9.0, high=15.0, close=11.0, num_trades=1, volume=10.0, waprice=9.0)
+            OHLC(date.today(), open=8.9, low=9.0, high=15.0, close=11.0, num_trades=1, volume=10.0, waprice=9.0)
 
-    def test_cannot_create_olhc_with_close_not_within_high_and_low(self):
+    def test_cannot_create_ohlc_with_close_not_within_high_and_low(self):
         with pytest.raises(ValueError):
-            OLHC(date.today(), open=10.0, low=9.0, high=15.0, close=16.0, num_trades=1, volume=10.0, waprice=9.0)
+            OHLC(date.today(), open=10.0, low=9.0, high=15.0, close=16.0, num_trades=1, volume=10.0, waprice=9.0)
 
-    def test_cannot_create_olhc_with_waprice_not_within_high_and_low(self):
+    def test_cannot_create_ohlc_with_waprice_not_within_high_and_low(self):
         with pytest.raises(ValueError):
-            OLHC(date.today(), open=9.0, low=9.0, high=15.0, close=11.0, num_trades=1, volume=10.0, waprice=90.0)
+            OHLC(date.today(), open=9.0, low=9.0, high=15.0, close=11.0, num_trades=1, volume=10.0, waprice=90.0)
 
     def test_csv_parse_unparse(self):
-        olhc = OLHC(date.today(), open=9.0, low=9.0, high=15.0, close=11.0, num_trades=1, volume=10.0, waprice=12.0)
-        csv_row = olhc.to_csv_row()
-        olhc_parsed = OLHC.from_csv_row(csv_row)
-        assert olhc == olhc_parsed
+        ohlc = OHLC(date.today(), open=9.0, low=9.0, high=15.0, close=11.0, num_trades=1, volume=10.0, waprice=12.0)
+        csv_row = ohlc.to_csv_row()
+        ohlc_parsed = OHLC.from_csv_row(csv_row)
+        assert ohlc == ohlc_parsed
 
 
-class TestOLHCSeries:
+class TestOHLCSeries:
     def test_can_create_empty_series(self):
-        series = OLHCSeries("instr", [])
+        series = OHLCSeries("instr", [])
         assert series.is_empty()
 
     def test_cannot_create_with_dates_not_ascending(self):
         with pytest.raises(ValueError):
-            OLHCSeries("instr", [
-                OLHC(date(2020, 12, 5), open=9.0, low=9.0, high=15.0, close=11.0, num_trades=1, volume=10.0,
+            OHLCSeries("instr", [
+                OHLC(date(2020, 12, 5), open=9.0, low=9.0, high=15.0, close=11.0, num_trades=1, volume=10.0,
                      waprice=13.0),
-                OLHC(date(2020, 12, 4), open=9.0, low=9.0, high=15.0, close=11.0, num_trades=1, volume=10.0,
+                OHLC(date(2020, 12, 4), open=9.0, low=9.0, high=15.0, close=11.0, num_trades=1, volume=10.0,
                      waprice=13.0)
             ])
 
     def test_can_create_good_instance(self):
-        series = OLHCSeries("instr", [
-            OLHC(date(2020, 12, 4), open=9.0, low=9.0, high=15.0, close=11.0, num_trades=1, volume=10.0, waprice=13.0),
-            OLHC(date(2020, 12, 5), open=9.0, low=9.0, high=15.0, close=11.0, num_trades=1, volume=10.0, waprice=13.0),
+        series = OHLCSeries("instr", [
+            OHLC(date(2020, 12, 4), open=9.0, low=9.0, high=15.0, close=11.0, num_trades=1, volume=10.0, waprice=13.0),
+            OHLC(date(2020, 12, 5), open=9.0, low=9.0, high=15.0, close=11.0, num_trades=1, volume=10.0, waprice=13.0),
         ])
         assert not series.is_empty()
 
     def test_cannot_append_non_adjacent_series(self):
         with pytest.raises(ValueError) as e:
-            series1 = OLHCSeries("instr", [
-                OLHC(date(2020, 12, 4), open=9.0, low=9.0, high=15.0, close=11.0, num_trades=1, volume=10.0,
+            series1 = OHLCSeries("instr", [
+                OHLC(date(2020, 12, 4), open=9.0, low=9.0, high=15.0, close=11.0, num_trades=1, volume=10.0,
                      waprice=13.0),
-                OLHC(date(2020, 12, 5), open=9.0, low=9.0, high=15.0, close=11.0, num_trades=1, volume=10.0,
+                OHLC(date(2020, 12, 5), open=9.0, low=9.0, high=15.0, close=11.0, num_trades=1, volume=10.0,
                      waprice=13.0),
             ])
-            series2 = OLHCSeries("instr", [
-                OLHC(date(2020, 12, 5), open=9.0, low=9.0, high=15.0, close=11.0, num_trades=1, volume=10.0,
+            series2 = OHLCSeries("instr", [
+                OHLC(date(2020, 12, 5), open=9.0, low=9.0, high=15.0, close=11.0, num_trades=1, volume=10.0,
                      waprice=13.0),
-                OLHC(date(2020, 12, 6), open=9.0, low=9.0, high=15.0, close=11.0, num_trades=1, volume=10.0,
+                OHLC(date(2020, 12, 6), open=9.0, low=9.0, high=15.0, close=11.0, num_trades=1, volume=10.0,
                      waprice=13.0),
             ])
             series1.append(series2)
@@ -188,48 +188,48 @@ class TestOLHCSeries:
 
     def test_cannot_join_series_of_different_instruments(self):
         with pytest.raises(ValueError) as e:
-            series1 = OLHCSeries("instr1", [])
-            series2 = OLHCSeries("instr2", [])
+            series1 = OHLCSeries("instr1", [])
+            series2 = OHLCSeries("instr2", [])
             series1.append(series2)
         assert "Instruments do not match" in str(e.value)
 
     def test_can_grow_series(self):
-        series1 = OLHCSeries("instr", [
-            OLHC(date(2020, 12, 4), open=9.0, low=9.0, high=15.0, close=11.0, num_trades=1, volume=10.0, waprice=13.0),
-            OLHC(date(2020, 12, 5), open=9.0, low=9.0, high=15.0, close=11.0, num_trades=1, volume=10.0, waprice=13.0),
+        series1 = OHLCSeries("instr", [
+            OHLC(date(2020, 12, 4), open=9.0, low=9.0, high=15.0, close=11.0, num_trades=1, volume=10.0, waprice=13.0),
+            OHLC(date(2020, 12, 5), open=9.0, low=9.0, high=15.0, close=11.0, num_trades=1, volume=10.0, waprice=13.0),
         ])
-        series2 = OLHCSeries("instr", [
-            OLHC(date(2020, 12, 6), open=9.0, low=9.0, high=15.0, close=11.0, num_trades=1, volume=10.0, waprice=13.0),
-            OLHC(date(2020, 12, 7), open=9.0, low=9.0, high=15.0, close=11.0, num_trades=1, volume=10.0, waprice=13.0),
+        series2 = OHLCSeries("instr", [
+            OHLC(date(2020, 12, 6), open=9.0, low=9.0, high=15.0, close=11.0, num_trades=1, volume=10.0, waprice=13.0),
+            OHLC(date(2020, 12, 7), open=9.0, low=9.0, high=15.0, close=11.0, num_trades=1, volume=10.0, waprice=13.0),
         ])
         series1.append(series2)
-        assert len(series1.olhc_series) == 4
-        assert series1.olhc_series[2:] == series2.olhc_series
+        assert len(series1.ohlc_series) == 4
+        assert series1.ohlc_series[2:] == series2.ohlc_series
 
     def test_empty_processing(self):
-        s1 = OLHCSeries("i", [])
-        s1.append(OLHCSeries("i", []))
+        s1 = OHLCSeries("i", [])
+        s1.append(OHLCSeries("i", []))
         assert s1.is_empty()
 
-        s_tmp = OLHCSeries("i", [
-            OLHC(date(2020, 12, 6), open=9.0, low=9.0, high=15.0, close=11.0, num_trades=1, volume=10.0, waprice=13.0)])
-        s2 = OLHCSeries("i", [])
+        s_tmp = OHLCSeries("i", [
+            OHLC(date(2020, 12, 6), open=9.0, low=9.0, high=15.0, close=11.0, num_trades=1, volume=10.0, waprice=13.0)])
+        s2 = OHLCSeries("i", [])
         s2.append(s_tmp)
         assert not s2.is_empty()
         assert s2 == s_tmp
 
-        s_tmp.append(OLHCSeries("i", []))
+        s_tmp.append(OHLCSeries("i", []))
         assert not s_tmp.is_empty()
 
     def test_avg_of_last_elems(self):
         close = [1.0, 2.0, 3.0, 4.0]
         open = [2.0, 3.0, 4.0, 5.0]
-        olhcs = [OLHC(date(2021, 1, 1) + timedelta(days=i), open=open[i], low=0.0, high=10.0,
+        ohlcs = [OHLC(date(2021, 1, 1) + timedelta(days=i), open=open[i], low=0.0, high=10.0,
                       close=close[i], num_trades=1, volume=1.0, waprice=1.0)
                  for i in range(len(close))]
-        series = OLHCSeries("i", olhcs)
+        series = OHLCSeries("i", ohlcs)
         assert series.avg_of_last_elems(2) == (close[-2] + close[-1]) / 2
-        assert series.avg_of_last_elems(2, lambda olhc: olhc.open) == (open[-2] + open[-1]) / 2
+        assert series.avg_of_last_elems(2, lambda ohlc: ohlc.open) == (open[-2] + open[-1]) / 2
         assert series.avg_of_last_elems(4) == (close[0] + close[1] + close[2] + close[3]) / 4
         with pytest.raises(ValueError):
             series.avg_of_last_elems(5)
