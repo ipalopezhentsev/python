@@ -3,7 +3,6 @@ import sys
 import signal
 import argparse
 import smtplib
-from dataclasses import dataclass
 from email.mime.text import MIMEText
 import sched
 from typing import List, Dict, Optional, Set
@@ -74,9 +73,11 @@ def get_triggered_signals(series: Dict[moex.Instrument, instruments.OHLCSeries],
         if rel_diff > rel_eps:
             triggered[instr] = f"Jump UP {round(rel_diff * 100.0, 2)}% to {rate} " \
                                f"from average of {round(avg_of_last_days, 2)} of last {window_size} days"
+            logger.warning(f"{instr} triggered")
         elif rel_diff < -rel_eps:
             triggered[instr] = f"Jump DOWN {round(rel_diff * 100.0, 2)}% to {rate} " \
                                f"from average of {round(avg_of_last_days, 2)} of last {window_size} days"
+            logger.warning(f"{instr} triggered")
         else:
             not_triggered[instr] = f"{rate} is {round(rel_diff * 100.0, 2)}% jump over last " \
                                    f"{window_size} days average of {round(avg_of_last_days, 2)}"
@@ -123,64 +124,65 @@ def get_mail_text(triggered_signals: Dict[moex.Instrument, str],
     return header, msg
 
 
-@dataclass
-class Ctx:
-    cur_series: Dict[moex.Instrument, instruments.OHLCSeries]
-    email: str
-    window_size: int
-    rel_eps: float
-    scheduler: sched.scheduler
-    ticks_freq: int
-    saving_freq: datetime.timedelta
-    time_last_save: Optional[datetime.datetime]
-    time_last_email_sent: Optional[datetime.datetime]
-    codes_sent_today: Optional[Set[moex.Instrument]]
+class Ticker:
+    def __init__(self, initial_series: Dict[moex.Instrument, instruments.OHLCSeries],
+                 email: str, window_size: int, rel_eps: float, scheduler: sched.scheduler,
+                 ticks_freq: int, saving_freq: datetime.timedelta):
+        self.cur_series = initial_series
+        self.email = email
+        self.window_size = window_size
+        self.rel_eps = rel_eps
+        self.scheduler = scheduler
+        self.ticks_freq = ticks_freq
+        self.saving_freq = saving_freq
+        self.time_last_save: Optional[datetime.datetime] = None
+        self.time_last_email_sent: Optional[datetime.datetime] = None
+        self.codes_sent_today: Set[moex.Instrument] = set()
 
-
-def tick(ctx: Ctx):
-    now = datetime.datetime.now()
-    logger.info("Start tick")
-    try:
-        good_series, errors = refresh_series(ctx.cur_series)
-        triggered, not_triggered = get_triggered_signals(good_series, ctx.window_size, ctx.rel_eps)
-        # send not more than 1 warning per day (except case when more series get triggered through the day)
-        day_changed_since_last_notification = ctx.time_last_email_sent is None or \
-                                              ctx.time_last_email_sent.date() != now.date()
-        if day_changed_since_last_notification:
-            ctx.codes_sent_today = None
-        triggered_instruments_already_reported_today = ctx.codes_sent_today is not None and \
-                                                       triggered.keys() <= ctx.codes_sent_today
-        duplicate = not day_changed_since_last_notification and triggered_instruments_already_reported_today
-
-        if (len(triggered) != 0 or len(errors) != 0) and not duplicate:
-            (header, msg) = get_mail_text(triggered, not_triggered, errors)
-            logger.info(header)
-            logger.info(msg)
-            send_mail(ctx.email, header, msg)
-            ctx.time_last_email_sent = now
-            ctx.codes_sent_today = triggered.keys()
-        else:
-            logger.info("Skip sending email as nothing to report or already sent today")
-
-        if ctx.time_last_save is None or now - ctx.time_last_save > ctx.saving_freq:
-            logger.info("Saving series")
-            save_series(good_series)
-            logger.info("Done saving")
-            ctx.time_last_save = now
-    except Exception as ex:
-        logger.error("Error happened on tick", exc_info=ex, stack_info=True)
-    finally:
-        ctx.scheduler.enter(ctx.ticks_freq, 1, tick, argument=(ctx,))
-        logger.info("End tick")
-
-
-def save_series(series: Dict[moex.Instrument, instruments.OHLCSeries]):
-    for instr, ser in series.items():
+    def tick(self, /, *args, **kwargs):
+        now = datetime.datetime.now()
+        logger.info("Start tick")
         try:
-            fname = instrument_to_filename(instr)
-            ser.save_to_csv(fname)
+            good_series, errors = refresh_series(self.cur_series)
+            triggered, not_triggered = get_triggered_signals(good_series, self.window_size, self.rel_eps)
+            # send not more than 1 warning per day (except case when more series get triggered through the day)
+            day_changed_since_last_notification = self.time_last_email_sent is None or \
+                                                  self.time_last_email_sent.date() != now.date()
+            if day_changed_since_last_notification:
+                self.codes_sent_today.clear()
+            triggered_instruments_already_reported_today = len(self.codes_sent_today) != 0 and \
+                                                           triggered.keys() <= self.codes_sent_today
+            duplicate = not day_changed_since_last_notification and triggered_instruments_already_reported_today
+
+            if (len(triggered) != 0 or len(errors) != 0) and not duplicate:
+                (header, msg) = get_mail_text(triggered, not_triggered, errors)
+                logger.info(header)
+                logger.info(msg)
+                send_mail(self.email, header, msg)
+                self.time_last_email_sent = now
+                self.codes_sent_today |= triggered.keys()
+            else:
+                logger.info("Skip sending email as nothing to report or already sent today")
+
+            if self.time_last_save is None or now - self.time_last_save > self.saving_freq:
+                logger.info("Saving series")
+                self.save_series(good_series)
+                logger.info("Done saving")
+                self.time_last_save = now
         except Exception as ex:
-            logger.error(f"Failed to save series for {instr}", exc_info=ex, stack_info=True)
+            logger.error("Error happened on tick", exc_info=ex, stack_info=True)
+        finally:
+            self.scheduler.enter(self.ticks_freq, 1, self.tick, argument=(self,))
+            logger.info("End tick")
+
+    @staticmethod
+    def save_series(series: Dict[moex.Instrument, instruments.OHLCSeries]):
+        for instr, ser in series.items():
+            try:
+                fname = instrument_to_filename(instr)
+                ser.save_to_csv(fname)
+            except Exception as ex:
+                logger.error(f"Failed to save series for {instr}", exc_info=ex, stack_info=True)
 
 
 def main():
@@ -228,8 +230,8 @@ def main():
 
     s = sched.scheduler()
     initial_series = get_initial_series(instrums)
-    ctx = Ctx(initial_series, email, window_size, rel_eps, s, ticks_freq, saving_freq, None, None, None)
-    s.enter(delay=0, priority=1, action=tick, argument=(ctx,))
+    ticker = Ticker(initial_series, email, window_size, rel_eps, s, ticks_freq, saving_freq)
+    s.enter(delay=0, priority=1, action=ticker.tick, argument=(ticker,))
 
     def on_sigterm(sig, stack):
         logger.info(f"Received SIGTERM ({sig}), shutting down\n{stack}")
