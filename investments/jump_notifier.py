@@ -58,10 +58,11 @@ def refresh_series(cur_series: Dict[moex.Instrument, instruments.OHLCSeries]) \
 
 
 def get_triggered_signals(series: Dict[moex.Instrument, instruments.OHLCSeries],
-                          window_size: int, rel_eps: float) -> Dict[moex.Instrument, str]:
+                          window_size: int, rel_eps: float) -> (Dict[moex.Instrument, str], Dict[moex.Instrument, str]):
+    """returns tuple whose first element is triggered instruments and second is all others, with clarifying message"""
     # TODO: for bonds: add notification its price gets < 100.
-    # TODO: add string for not triggered instruments so we can include them to mail too (for info)
-    res = {}
+    triggered = {}
+    not_triggered = {}
     for instr, ser in series.items():
         quote = instr.load_intraday_quotes()
         if not quote.is_trading:
@@ -71,16 +72,15 @@ def get_triggered_signals(series: Dict[moex.Instrument, instruments.OHLCSeries],
         rate = quote.last
         rel_diff = (rate - avg_of_last_days) / max(rate, avg_of_last_days)
         if rel_diff > rel_eps:
-            res[instr] = f"Jump UP {round(rel_diff * 100.0, 2)}% to {rate} " \
-                         f"from average of {round(avg_of_last_days, 2)} of last {window_size} days"
+            triggered[instr] = f"Jump UP {round(rel_diff * 100.0, 2)}% to {rate} " \
+                               f"from average of {round(avg_of_last_days, 2)} of last {window_size} days"
         elif rel_diff < -rel_eps:
-            res[instr] = f"Jump DOWN {round(rel_diff * 100.0, 2)}% to {rate} " \
-                         f"from average of {round(avg_of_last_days, 2)} of last {window_size} days"
+            triggered[instr] = f"Jump DOWN {round(rel_diff * 100.0, 2)}% to {rate} " \
+                               f"from average of {round(avg_of_last_days, 2)} of last {window_size} days"
         else:
-            logger.info(f"{instr} intraday price {rate} did not jump {rel_eps * 100.0}% over last "
-                        f"{window_size} days average of {round(avg_of_last_days, 2)}")
-
-    return res
+            not_triggered[instr] = f"{rate} is {round(rel_diff * 100.0, 2)}% jump over last " \
+                                   f"{window_size} days average of {round(avg_of_last_days, 2)}"
+    return triggered, not_triggered
 
 
 def send_mail(email_address: str, msg_header: str, msg_text: str) -> None:
@@ -106,15 +106,20 @@ def send_mail(email_address: str, msg_header: str, msg_text: str) -> None:
 
 
 def get_mail_text(triggered_signals: Dict[moex.Instrument, str],
+                  not_triggered_instruments: Dict[moex.Instrument, str],
                   errors: Dict[moex.Instrument, Exception]) -> (str, str):
     header = "WARN: Jumps found for " + ", ".join(map(lambda i: i.code, triggered_signals.keys()))
-    msg = ""
+    msg = "Triggered instruments:\n"
     for instr, sig in triggered_signals.items():
         msg += f"{instr}: {sig}\n"
+    if len(not_triggered_instruments) != 0:
+        msg += "\n\nNot triggered instruments:\n"
+        for instr, txt in not_triggered_instruments.items():
+            msg += f"{instr}: {txt}\n"
     if len(errors) != 0:
-        msg += "\n"
+        msg += "\n\nErrors:\n\n"
         for instr, err in errors.items():
-            msg += f"{instr}: {err}\n"
+            msg += f"{instr}: {err}\n\n"
     return header, msg
 
 
@@ -129,7 +134,7 @@ class Ctx:
     saving_freq: datetime.timedelta
     time_last_save: Optional[datetime.datetime]
     time_last_email_sent: Optional[datetime.datetime]
-    codes_last_sent: Optional[Set[moex.Instrument]]
+    codes_sent_today: Optional[Set[moex.Instrument]]
 
 
 def tick(ctx: Ctx):
@@ -137,18 +142,23 @@ def tick(ctx: Ctx):
     logger.info("Start tick")
     try:
         good_series, errors = refresh_series(ctx.cur_series)
-        triggered_signals: dict[moex.Instrument, str] = get_triggered_signals(good_series, ctx.window_size, ctx.rel_eps)
+        triggered, not_triggered = get_triggered_signals(good_series, ctx.window_size, ctx.rel_eps)
         # send not more than 1 warning per day (except case when more series get triggered through the day)
-        duplicate = ctx.time_last_email_sent is not None and now.date() == ctx.time_last_email_sent.date() \
-            and ctx.codes_last_sent is not None and ctx.codes_last_sent == triggered_signals.keys()
+        day_changed_since_last_notification = ctx.time_last_email_sent is None or \
+                                              ctx.time_last_email_sent.date() != now.date()
+        if day_changed_since_last_notification:
+            ctx.codes_sent_today = None
+        triggered_instruments_already_reported_today = ctx.codes_sent_today is not None and \
+                                                       triggered.keys() <= ctx.codes_sent_today
+        duplicate = not day_changed_since_last_notification and triggered_instruments_already_reported_today
 
-        if (len(triggered_signals) != 0 or len(errors) != 0) and not duplicate:
-            (header, msg) = get_mail_text(triggered_signals, errors)
+        if (len(triggered) != 0 or len(errors) != 0) and not duplicate:
+            (header, msg) = get_mail_text(triggered, not_triggered, errors)
             logger.info(header)
             logger.info(msg)
             send_mail(ctx.email, header, msg)
             ctx.time_last_email_sent = now
-            ctx.codes_last_sent = triggered_signals.keys()
+            ctx.codes_sent_today = triggered.keys()
         else:
             logger.info("Skip sending email as nothing to report or already sent today")
 
