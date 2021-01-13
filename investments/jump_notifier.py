@@ -56,24 +56,28 @@ def get_triggered_signals(series: Dict[moex.Instrument, instruments.OHLCSeries],
     triggered = {}
     not_triggered = {}
     for instr, ser in series.items():
-        quote = instr.load_intraday_quotes()
-        if not quote.is_trading:
-            logger.info(f"Skipping {instr} as it's not currently trading")
-            continue
-        avg_of_last_days = ser.avg_of_last_elems(window_size)
-        rate = quote.last
-        rel_diff = (rate - avg_of_last_days) / max(rate, avg_of_last_days)
-        if rel_diff > rel_eps:
-            triggered[instr] = f"Jump UP {round(rel_diff * 100.0, 2)}% to {rate} " \
-                               f"from average of {round(avg_of_last_days, 2)} of last {window_size} days"
-            logger.warning(f"{instr} triggered")
-        elif rel_diff < -rel_eps:
-            triggered[instr] = f"Jump DOWN {round(rel_diff * 100.0, 2)}% to {rate} " \
-                               f"from average of {round(avg_of_last_days, 2)} of last {window_size} days"
-            logger.warning(f"{instr} triggered")
-        else:
-            not_triggered[instr] = f"{rate} is {round(rel_diff * 100.0, 2)}% jump over last " \
-                                   f"{window_size} days average of {round(avg_of_last_days, 2)}"
+        try:
+            quote = instr.load_intraday_quotes()
+            if not quote.is_trading:
+                logger.info(f"Skipping {instr} as it's not currently trading")
+                continue
+            avg_of_last_days = ser.avg_of_last_elems(window_size)
+            rate = quote.last
+            rel_diff = (rate - avg_of_last_days) / max(rate, avg_of_last_days)
+            if rel_diff > rel_eps:
+                triggered[instr] = f"Jump UP {round(rel_diff * 100.0, 2)}% to {rate} " \
+                                   f"from average of {round(avg_of_last_days, 2)} of last {window_size} days"
+                logger.warning(f"{instr} triggered")
+            elif rel_diff < -rel_eps:
+                triggered[instr] = f"Jump DOWN {round(rel_diff * 100.0, 2)}% to {rate} " \
+                                   f"from average of {round(avg_of_last_days, 2)} of last {window_size} days"
+                logger.warning(f"{instr} triggered")
+            else:
+                not_triggered[instr] = f"{rate} is {round(rel_diff * 100.0, 2)}% jump over last " \
+                                       f"{window_size} days average of {round(avg_of_last_days, 2)}"
+        except Exception as ex:
+            logger.error(f"Error happened getting intraday rates for {instr}", exc_info=ex, stack_info=True)
+            triggered[instr] = f"Could not get intraday rates: {ex}"
     return triggered, not_triggered
 
 
