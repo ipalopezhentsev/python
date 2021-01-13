@@ -137,9 +137,8 @@ class TestOHLC:
         with pytest.raises(ValueError):
             OHLC(date.today(), open=10.0, low=9.0, high=15.0, close=16.0, num_trades=1, volume=10.0, waprice=9.0)
 
-    def test_cannot_create_ohlc_with_waprice_not_within_high_and_low(self):
-        with pytest.raises(ValueError):
-            OHLC(date.today(), open=9.0, low=9.0, high=15.0, close=11.0, num_trades=1, volume=10.0, waprice=90.0)
+    def test_can_create_ohlc_with_waprice_not_within_high_and_low(self):
+        OHLC(date.today(), open=9.0, low=9.0, high=15.0, close=11.0, num_trades=1, volume=10.0, waprice=90.0)
 
     def test_csv_parse_unparse(self):
         ohlc = OHLC(date.today(), open=9.0, low=9.0, high=15.0, close=11.0, num_trades=1, volume=10.0, waprice=12.0)

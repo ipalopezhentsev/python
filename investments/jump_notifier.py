@@ -13,8 +13,6 @@ import datetime
 import investments.logsetup
 
 logger = logging.getLogger(__name__)
-one_day = datetime.timedelta(days=1)
-
 
 def instrument_to_filename(instr: moex.Instrument):
     return f"data/{instr.code}.csv"
@@ -44,12 +42,7 @@ def refresh_series(cur_series: Dict[moex.Instrument, instruments.OHLCSeries]) \
     errors = {}
     for instr, series in cur_series.items():
         try:
-            if not series.is_empty():
-                from_date = series.ohlc_series[-1].date + one_day
-            else:
-                from_date = None
-            addition = instr.load_ohlc_table(from_date)
-            series.append(addition)
+            instr.update_ohlc_table(series)
             good_series[instr] = series
         except Exception as ex:
             errors[instr] = ex

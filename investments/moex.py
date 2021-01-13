@@ -14,6 +14,7 @@ from investments.instruments import Bond, AmortizationScheduleEntry, CouponSched
 
 ISS_URL = "https://iss.moex.com/iss/"
 logger = logging.getLogger(__name__)
+one_day = datetime.timedelta(days=1)
 
 
 def load_coupon_schedule_xml(isin: str) -> str:
@@ -136,7 +137,19 @@ class Instrument(ABC):
                 date = addition.ohlc_series[-1].date + datetime.timedelta(days=1)
         return series
 
-    def _parse_intraday_quotes(self, reply: str) -> IntradayQuote:
+    def update_ohlc_table(self, existing_series: OHLCSeries) -> None:
+        """Tries to load new values after the last date of existing series"""
+        if self.code != existing_series.instr_code:
+            raise ValueError(f"Incompatible instruments: {self.code} vs {existing_series.instr_code}")
+        if not existing_series.is_empty():
+            from_date = existing_series.ohlc_series[-1].date + one_day
+        else:
+            from_date = None
+        addition = self.load_ohlc_table(from_date)
+        existing_series.append(addition)
+
+    @staticmethod
+    def _parse_intraday_quotes(reply: str) -> IntradayQuote:
         root = ET.fromstring(reply)
         row = root.findall(".//data[@id='marketdata']//row")[0]
 
