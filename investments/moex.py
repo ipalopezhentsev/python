@@ -150,16 +150,19 @@ class Instrument(ABC):
 
     @staticmethod
     def _parse_intraday_quotes(reply: str) -> IntradayQuote:
-        root = ET.fromstring(reply)
-        row = root.findall(".//data[@id='marketdata']//row")[0]
+        try:
+            root = ET.fromstring(reply)
+            row = root.findall(".//data[@id='marketdata']//row")[0]
 
-        # TRADINGSTATUS is "T"/"N"
-        is_trading = True if row.get("TRADINGSTATUS") == "T" else False
-        last = float(row.get("LAST"))
-        num_trades = int(row.get("NUMTRADES"))
-        time = datetime.time.fromisoformat(row.get("TIME"))
-        return IntradayQuote(instrument=row.get("SECID"), last=last, num_trades=num_trades,
-                             is_trading=is_trading, time=time)
+            # TRADINGSTATUS is "T"/"N"
+            is_trading = True if row.get("TRADINGSTATUS") == "T" else False
+            last = float(row.get("LAST"))
+            num_trades = int(row.get("NUMTRADES"))
+            time = datetime.time.fromisoformat(row.get("TIME"))
+            return IntradayQuote(instrument=row.get("SECID"), last=last, num_trades=num_trades,
+                                 is_trading=is_trading, time=time)
+        except Exception as ex:
+            raise ValueError(f"Error while parsing reply {reply}") from ex
 
     def load_intraday_quotes(self) -> IntradayQuote:
         exchange_coords = self.get_exchange_coords()
