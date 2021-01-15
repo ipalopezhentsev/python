@@ -50,7 +50,8 @@ def refresh_series(cur_series: Dict[moex.Instrument, instruments.OHLCSeries]) \
 
 
 def get_triggered_signals(series: Dict[moex.Instrument, instruments.OHLCSeries],
-                          window_size: int, rel_eps: float) -> (Dict[moex.Instrument, str], Dict[moex.Instrument, str]):
+                          window_size: int, rel_eps: float) \
+        -> (Dict[moex.Instrument, str], Dict[moex.Instrument, str]):
     """returns tuple whose first element is triggered instruments and second is all others, with clarifying message"""
     # TODO: for bonds: add notification its price gets < 100.
     triggered = {}

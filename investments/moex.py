@@ -148,15 +148,20 @@ class Instrument(ABC):
         addition = self.load_ohlc_table(from_date)
         existing_series.append(addition)
 
-    @staticmethod
-    def _parse_intraday_quotes(reply: str) -> IntradayQuote:
+    def _parse_intraday_quotes(self, reply: str) -> IntradayQuote:
         try:
             root = ET.fromstring(reply)
-            row = root.findall(".//data[@id='marketdata']//row")[0]
+            rows = root.findall(".//data[@id='marketdata']//row")
+            if rows is None or len(rows) == 0:
+                now = datetime.datetime.now()
+                delayed_time = (now - datetime.timedelta(minutes=15, microseconds=now.microsecond)).time()
+                return IntradayQuote(instrument=self.code, last=0.0, num_trades=0, is_trading=False, time=delayed_time)
+            row = rows[0]
 
             # TRADINGSTATUS is "T"/"N"
             is_trading = True if row.get("TRADINGSTATUS") == "T" else False
-            last = float(row.get("LAST"))
+            str_last = row.get("LAST")
+            last = float(str_last) if str_last is not None and str_last != "" else 0.0
             num_trades = int(row.get("NUMTRADES"))
             time = datetime.time.fromisoformat(row.get("TIME"))
             return IntradayQuote(instrument=row.get("SECID"), last=last, num_trades=num_trades,

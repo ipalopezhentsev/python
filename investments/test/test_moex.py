@@ -1,4 +1,4 @@
-from datetime import date, time
+from datetime import date, time, datetime, timedelta
 import os
 from unittest.mock import MagicMock
 
@@ -136,6 +136,28 @@ class TestInstruments:
         assert today_quotes.is_trading is False
         assert today_quotes.time == time(23, 49, 59)
 
+    def test_can_parse_empty_reply_type1(self, sample_empty_quote1_xml: str):
+        instr = m.FXInstrument("i")
+        today_quotes = instr._parse_intraday_quotes(sample_empty_quote1_xml)
+        assert today_quotes.instrument == "EUR_RUB__TOM"
+        assert today_quotes.last == 0.0
+        assert today_quotes.num_trades == 0
+        assert today_quotes.is_trading is False
+        assert today_quotes.time == time(9, 15, 4)
+
+    def test_can_parse_empty_reply_type2(self, sample_empty_quote2_xml: str):
+        instr = m.FXInstrument("i")
+        datetime_now = datetime.now()
+        now = (datetime_now - timedelta(minutes=15, microseconds=datetime_now.microsecond)).time()
+        today_quotes = instr._parse_intraday_quotes(sample_empty_quote2_xml)
+        assert today_quotes.instrument == "i"
+        assert today_quotes.last == 0.0
+        assert today_quotes.num_trades == 0
+        assert today_quotes.is_trading is False
+        # yes, is not guaranteed to be the same...
+        assert today_quotes.time == now
+
+
 @pytest.fixture()
 def sample_ohlc_csv() -> str:
     with read_file("eurrub.csv") as f:
@@ -145,4 +167,16 @@ def sample_ohlc_csv() -> str:
 @pytest.fixture()
 def sample_today_rates_xml() -> str:
     with read_file("USD000UTSTOM.xml") as f:
+        yield f.read()
+
+
+@pytest.fixture()
+def sample_empty_quote1_xml() -> str:
+    with read_file("empty_quote1.xml") as f:
+        yield f.read()
+
+
+@pytest.fixture()
+def sample_empty_quote2_xml() -> str:
+    with read_file("empty_quote2.xml") as f:
         yield f.read()
