@@ -162,7 +162,12 @@ class Instrument(ABC):
             is_trading = True if row.get("TRADINGSTATUS") == "T" else False
             str_last = row.get("LAST")
             last = float(str_last) if str_last is not None and str_last != "" else 0.0
-            num_trades = int(row.get("NUMTRADES"))
+            str_num_trades = row.get("NUMTRADES")
+            num_trades = int(str_num_trades) if str_num_trades is not None and str_num_trades != "" else 0
+            if is_trading and last == 0.0:
+                # happens at beginning of every day, i.e. there is no deals despite trading is started,
+                # let's treat it as if trading has not started yet, otherwise there'll be jump to 0 reported.
+                is_trading = False
             time = datetime.time.fromisoformat(row.get("TIME"))
             return IntradayQuote(instrument=row.get("SECID"), last=last, num_trades=num_trades,
                                  is_trading=is_trading, time=time)
