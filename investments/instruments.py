@@ -180,12 +180,15 @@ class OHLC:
                     waprice=float(row[field_waprice]))
 
 
-@dataclass(frozen=True)
+@dataclass()
 class OHLCSeries:
     """it's meant to be just string, to not bring dependency on MOEX classes via Instrument"""
     instr_code: str
     """ordered by date ascending"""
     ohlc_series: List[OHLC]
+    """longer user friendly name from exchange"""
+    # TODO: persist to csv
+    name: Optional[str] = None
 
     def __post_init__(self):
         prev_date: Optional[datetime.date] = None
@@ -194,6 +197,9 @@ class OHLCSeries:
             if prev_date is not None and prev_date >= cur_date:
                 raise ValueError(f"Series must have ascending dates, they are not: {prev_date} vs {cur_date}")
             prev_date = cur_date
+
+    def __str__(self) -> str:
+        return "OHLCSeries[" + self.name if self.name is not None else self.instr_code + "]"
 
     def is_empty(self):
         return len(self.ohlc_series) == 0
@@ -211,6 +217,8 @@ class OHLCSeries:
             if our_last_date >= their_last_date:
                 raise ValueError(f"First date ({their_last_date}) must be > {our_last_date}")
         self.ohlc_series.extend(other.ohlc_series)
+        if other.name is not None:
+            self.name = other.name
 
     def save_to_csv(self, filename):
         with open(filename, 'w', newline='') as f:
@@ -229,7 +237,8 @@ class OHLCSeries:
             for row in reader:
                 ohlc = OHLC.from_csv_row(row)
                 series.append(ohlc)
-        return OHLCSeries(instr_code, series)
+        # TODO: persist name
+        return OHLCSeries(instr_code, series, name=None)
 
     def avg_of_last_elems(self, num_elems: int,
                           field_getter: Callable[[OHLC], float] = lambda x: x.close) -> float:

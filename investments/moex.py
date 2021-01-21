@@ -66,6 +66,7 @@ def load_bond(isin: str) -> Bond:
 class Instrument(ABC):
     def __init__(self, code: str):
         self.code = code
+        self.name = None
 
     def __eq__(self, o: Instrument) -> bool:
         return self.__class__.__name__ == o.__class__.__name__ and self.code == o.code
@@ -74,16 +75,22 @@ class Instrument(ABC):
         return hash(self.code)
 
     def __str__(self) -> str:
-        return self.code
+        return self.code if self.name is None else f"{self.name} ({self.code})"
 
     @abstractmethod
     def get_exchange_coords(self):
         """returns 'middle' part for MOEX url's like engines/stock/markets/shares/boards/TQTF"""
         pass
 
-#NOTE: CANNOT BE PRIVATE - WON'T CALL DERIVED VARIANTS!
-    def get_volume(self, row: Dict[str, str]) -> float:
+    # NOTE: CANNOT BE PRIVATE - WON'T CALL DERIVED VARIANTS!
+    def parse_volume(self, row: Dict[str, str]) -> float:
         return float(row["VOLUME"])
+
+    def parse_num_trades(self, row: Dict[str, str]) -> int:
+        return int(row["NUMTRADES"])
+
+    def parse_waprice(self, row: Dict[str, str]) -> float:
+        return float(row["WAPRICE"])
 
     def _parse_ohlc_csv(self, reply: str) -> OHLCSeries:
         lines = reply.split("\n")[2:]
@@ -91,21 +98,26 @@ class Instrument(ABC):
         # (in instruments module) is OHLC as market convention
         reader = csv.DictReader(lines, delimiter=";")
         series = []
+        name = None
         for row in reader:
             try:
-                num_trades = int(row["NUMTRADES"])
+                num_trades = self.parse_num_trades(row)
                 date = datetime.date.fromisoformat(row["TRADEDATE"])
                 if num_trades != 0:
                     ohlc = OHLC(date=date, open=float(row["OPEN"]),
                                 low=float(row["LOW"]), high=float(row["HIGH"]), close=float(row["CLOSE"]),
-                                num_trades=num_trades, volume=self.get_volume(row), waprice=float(row["WAPRICE"]))
+                                num_trades=num_trades, volume=self.parse_volume(row), waprice=self.parse_waprice(row))
                     series.append(ohlc)
                 else:
+                    # otherwise pandas import will change column type from double to object due to NA presence
                     logger.info(f"Skipping {date} for {self} as it had no trades")
-
+                if name is None:
+                    name = row["SHORTNAME"]
             except ValueError as e:
                 raise ValueError(f"Error happened for row {row}", e)
-        return OHLCSeries(self.code, series)
+        if self.name is None:
+            self.name = name
+        return OHLCSeries(self.code, series, name)
 
     def __load_partial_ohlc_table_csv(self, from_date: Optional[datetime.date]) -> OHLCSeries:
         """Loads certain number of lines from from_date. So to read the whole available
@@ -125,7 +137,7 @@ class Instrument(ABC):
                         = __load_partial_ohlc_table_csv) -> OHLCSeries:
         """loads OHLC table from web API of exchange, starting from the specified date or from beginning if empty.
         Note for some instruments MOEX API can give data starting from later date than available on their site"""
-        series = OHLCSeries(self.code, [])
+        series = OHLCSeries(self.code, [], None)
         date = from_date
         while True:
             logger.info(f"Loading {self} from {date if date is not None else 'beginning'}")
@@ -188,7 +200,7 @@ class FXInstrument(Instrument):
     def get_exchange_coords(self):
         return f"engines/currency/markets/selt/boards/CETS"
 
-    def get_volume(self, row: Dict[str, str]) -> float:
+    def parse_volume(self, row: Dict[str, str]) -> float:
         return float(row["VOLRUR"])
 
 
@@ -207,3 +219,26 @@ class ShareInstrument(Instrument):
 
     def get_exchange_coords(self):
         return f"engines/stock/markets/shares/boards/TQTF"
+
+
+class IndexInstrument(Instrument):
+    def __init__(self, secid: str):
+        """secid - e.g. MREDC"""
+        super().__init__(secid)
+
+    def get_exchange_coords(self):
+        return f"engines/stock/markets/index/boards/RTSI"
+
+    def parse_num_trades(self, row: Dict[str, str]) -> int:
+        # cannot use 0 as otherwise parent loader will skip the row
+        return 1
+
+    def parse_volume(self, row: Dict[str, str]) -> float:
+        return 0.0
+
+    def parse_waprice(self, row: Dict[str, str]) -> float:
+        return 0.0
+
+
+
+

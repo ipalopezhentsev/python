@@ -58,13 +58,10 @@ class TestMoex:
                 raise
 
 
-
 @pytest.fixture()
 def sample_bond_xml() -> str:
     with read_file("RU000A0JWSQ7.xml") as f:
         yield f.read()
-
-
 
 
 def read_file(rel_name: str):
@@ -102,15 +99,30 @@ class TestInstruments:
 
         assert str(fx1) == fx1.code
 
-    def test_can_parse_ohlc(self, sample_ohlc_csv):
+    def test_can_parse_currency_ohlc(self, sample_ohlc_currency_csv):
         inst = m.FXInstrument("eurrub")
-        ohlc: OHLCSeries = inst._parse_ohlc_csv(sample_ohlc_csv)
+        ohlc: OHLCSeries = inst._parse_ohlc_csv(sample_ohlc_currency_csv)
         assert not ohlc.is_empty()
         s = ohlc.ohlc_series
         assert s[0] == OHLC(date(2005, 6, 20), open=34.79, low=34.7701, high=34.83, close=34.81, num_trades=21,
                             volume=157224489.9, waprice=34.8073)
         assert s[-1] == OHLC(date(2005, 11, 7), open=34.97, low=33.925, high=34.97, close=34.01, num_trades=57,
                              volume=142336864.5, waprice=34.0031)
+        assert ohlc.name == "EURRUB_TOM"
+        assert inst.name == ohlc.name
+
+    def test_can_parse_index_ohlc(self, sample_ohlc_index_csv):
+        inst = m.IndexInstrument("mredc")
+        assert inst.name is None
+        ohlc: OHLCSeries = inst._parse_ohlc_csv(sample_ohlc_index_csv)
+        assert not ohlc.is_empty()
+        s = ohlc.ohlc_series
+        assert s[0] == OHLC(date(2016, 12, 28), open=159646.69, low=159646.69, high=159646.69, close=159646.69,
+                            num_trades=1, volume=0.0, waprice=0.0)
+        assert s[-1] == OHLC(date(2018, 11, 21), open=167319.51, low=167319.51, high=167319.51, close=167319.51,
+                             num_trades=1, volume=0.0, waprice=0.0)
+        assert ohlc.name == "Индекс недвиж-ти ДомКлик Москва"
+        assert inst.name == ohlc.name
 
     def test_can_load_full_ohlc_from_partials(self):
         instr = m.FXInstrument("i")
@@ -159,8 +171,14 @@ class TestInstruments:
 
 
 @pytest.fixture()
-def sample_ohlc_csv() -> str:
+def sample_ohlc_currency_csv() -> str:
     with read_file("eurrub.csv") as f:
+        yield f.read()
+
+
+@pytest.fixture()
+def sample_ohlc_index_csv() -> str:
+    with read_file("mredc.csv") as f:
         yield f.read()
 
 

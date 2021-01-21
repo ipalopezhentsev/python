@@ -14,6 +14,7 @@ import investments.logsetup
 
 logger = logging.getLogger(__name__)
 
+
 def instrument_to_filename(instr: moex.Instrument):
     return f"data/{instr.code}.csv"
 
@@ -26,11 +27,11 @@ def get_initial_series(instrums: List[moex.Instrument]) -> Dict[moex.Instrument,
             if os.path.exists(fname):
                 series = instruments.OHLCSeries.load_from_csv(fname)
             else:
-                series = instruments.OHLCSeries(instrument.code, [])
+                series = instruments.OHLCSeries(instrument.code, [], name=None)
         except Exception as e:
             logger.error(f"Error loading initial data for {instrument}", exc_info=e, stack_info=True)
             # give it chance to load from http
-            series = instruments.OHLCSeries(instrument.code, [])
+            series = instruments.OHLCSeries(instrument.code, [], name=None)
         res[instrument] = series
     return res
 
@@ -208,18 +209,23 @@ def main():
     parser.add_argument("--share-codes",
                         help="Security ID's (not ISIN's!) of share instruments on MOEX (e.g. SBMX). ",
                         nargs="+", metavar="SHARE_CODE")
+    parser.add_argument("--index-codes",
+                        help="Security ID's of indexes on MOEX (e.g. MREDC).",
+                        nargs="+", metavar="INDEX_CODE")
 
     args = parser.parse_args()
     email = args.email
     fx_codes = args.fx_codes
     bond_codes = args.bond_codes
     share_codes = args.share_codes
-    if fx_codes is None and bond_codes is None and share_codes is None:
-        raise ValueError("At least one of --fx-codes, --bond-codes, --share-codes must be specified")
+    index_codes = args.index_codes
+    if fx_codes is None and bond_codes is None and share_codes is None and index_codes is None:
+        raise ValueError("At least one of --fx-codes, --bond-codes, --share-codes, --index-codes must be specified")
     instrums: List[moex.Instrument] = []
     instrums.extend([moex.FXInstrument(secid) for secid in fx_codes])
     instrums.extend([moex.BondInstrument(isin) for isin in bond_codes])
     instrums.extend([moex.ShareInstrument(secid) for secid in share_codes])
+    instrums.extend([moex.IndexInstrument(secid) for secid in index_codes])
     window_size = args.window
     rel_eps = args.rel_eps
     ticks_freq = args.ticks_freq_seconds
