@@ -222,10 +222,14 @@ def main():
     if fx_codes is None and bond_codes is None and share_codes is None and index_codes is None:
         raise ValueError("At least one of --fx-codes, --bond-codes, --share-codes, --index-codes must be specified")
     instrums: List[moex.Instrument] = []
-    instrums.extend([moex.FXInstrument(secid) for secid in fx_codes])
-    instrums.extend([moex.BondInstrument(isin) for isin in bond_codes])
-    instrums.extend([moex.ShareInstrument(secid) for secid in share_codes])
-    instrums.extend([moex.IndexInstrument(secid) for secid in index_codes])
+    if fx_codes is not None:
+        instrums.extend([moex.FXInstrument(secid) for secid in fx_codes])
+    if bond_codes is not None:
+        instrums.extend([moex.BondInstrument(isin) for isin in bond_codes])
+    if share_codes is not None:
+        instrums.extend([moex.ShareInstrument(secid) for secid in share_codes])
+    if index_codes is not None:
+        instrums.extend([moex.IndexInstrument(secid) for secid in index_codes])
     window_size = args.window
     rel_eps = args.rel_eps
     ticks_freq = args.ticks_freq_seconds
