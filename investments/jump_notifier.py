@@ -51,7 +51,7 @@ def refresh_series(cur_series: Dict[moex.Instrument, instruments.OHLCSeries]) \
 
 
 def get_triggered_signals(series: Dict[moex.Instrument, instruments.OHLCSeries],
-                          window_size: int, rel_eps: float) \
+                          window_size: int, num_std_devs_thresh: float) \
         -> (Dict[moex.Instrument, str], Dict[moex.Instrument, str]):
     """returns tuple whose first element is triggered instruments and second is all others, with clarifying message"""
     # TODO: for bonds: add notification its price gets < 100.
@@ -63,20 +63,26 @@ def get_triggered_signals(series: Dict[moex.Instrument, instruments.OHLCSeries],
             if not quote.is_trading:
                 logger.info(f"Skipping {instr} as it's not currently trading")
                 continue
-            avg_of_last_days = ser.avg_of_last_elems(window_size)
+            mean = ser.mean_of_last_elems(window_size)
+            std_dev = ser.std_dev_of_last_elems(window_size, mean=mean)
             rate = quote.last
-            rel_diff = (rate - avg_of_last_days) / max(rate, avg_of_last_days)
-            if rel_diff > rel_eps:
+            rel_diff = (rate - mean) / max(rate, mean)
+            nstd_devs = num_std_devs_thresh * std_dev
+            observed_num_std_devs_jump = abs(rate-mean)/std_dev
+            if rate > mean + nstd_devs:
                 triggered[instr] = f"Jump UP {round(rel_diff * 100.0, 2)}% to {rate} " \
-                                   f"from average of {round(avg_of_last_days, 2)} of last {window_size} days"
+                                   f"from average of {round(mean, 2)} of last {window_size} days " \
+                                   f"(jump of {round(observed_num_std_devs_jump, 2)} std. devs from mean)"
                 logger.warning(f"{instr} triggered")
-            elif rel_diff < -rel_eps:
+            elif rate < mean - nstd_devs:
                 triggered[instr] = f"Jump DOWN {round(rel_diff * 100.0, 2)}% to {rate} " \
-                                   f"from average of {round(avg_of_last_days, 2)} of last {window_size} days"
+                                   f"from average of {round(mean, 2)} of last {window_size} days " \
+                                   f"(jump of {round(observed_num_std_devs_jump, 2)} std. devs from mean)"
                 logger.warning(f"{instr} triggered")
             else:
                 not_triggered[instr] = f"{rate} is {round(rel_diff * 100.0, 2)}% jump over last " \
-                                       f"{window_size} days average of {round(avg_of_last_days, 2)}"
+                                       f"{window_size} days average of {round(mean, 2)} " \
+                                       f"(jump of {round(observed_num_std_devs_jump, 2)} std. devs from mean)"
         except Exception as ex:
             logger.error(f"Error happened getting intraday rates for {instr}", exc_info=ex, stack_info=True)
             triggered[instr] = f"Could not get intraday rates: {ex}"
@@ -125,12 +131,12 @@ def get_mail_text(triggered_signals: Dict[moex.Instrument, str],
 
 class Ticker:
     def __init__(self, initial_series: Dict[moex.Instrument, instruments.OHLCSeries],
-                 email: str, window_size: int, rel_eps: float, scheduler: sched.scheduler,
+                 email: str, window_size: int, num_std_devs_thresh: float, scheduler: sched.scheduler,
                  ticks_freq: int, saving_freq: datetime.timedelta):
         self.cur_series = initial_series
         self.email = email
         self.window_size = window_size
-        self.rel_eps = rel_eps
+        self.num_std_devs_thresh = num_std_devs_thresh
         self.scheduler = scheduler
         self.ticks_freq = ticks_freq
         self.saving_freq = saving_freq
@@ -143,7 +149,7 @@ class Ticker:
         logger.info("Start tick")
         try:
             good_series, errors = refresh_series(self.cur_series)
-            triggered, not_triggered = get_triggered_signals(good_series, self.window_size, self.rel_eps)
+            triggered, not_triggered = get_triggered_signals(good_series, self.window_size, self.num_std_devs_thresh)
             # send not more than 1 warning per day (except case when more series get triggered through the day)
             day_changed_since_last_notification = self.time_last_email_sent is None or \
                                                   self.time_last_email_sent.date() != now.date()
@@ -195,9 +201,9 @@ def main():
                         help="Check intraday rates with this frequency, in seconds")
     parser.add_argument("--saving-freq-hours", type=int, default=24,
                         help="Save collected EOD rates to disk with this frequency, in hours")
-    parser.add_argument("--rel-eps", type=float, default=0.01,
-                        help="Relative diff threshold between rate of last days (number is set by window size) "
-                             "and today's intraday rate to send warning email")
+    parser.add_argument("--num-std-devs-thresh", type=float, default=2.0,
+                        help="Minimum number of standard deviations intraday rate should jump from the mean to "
+                             "send warning email")
     parser.add_argument("--fx-codes",
                         help="Security ID's of FX instruments on MOEX (e.g. EUR_RUB__TOM USD000UTSTOM). "
                              "To get it, check "
@@ -231,14 +237,14 @@ def main():
     if index_codes is not None:
         instrums.extend([moex.IndexInstrument(secid) for secid in index_codes])
     window_size = args.window
-    rel_eps = args.rel_eps
+    num_std_devs_thresh = args.num_std_devs_thresh
     ticks_freq = args.ticks_freq_seconds
     saving_freq = datetime.timedelta(hours=args.saving_freq_hours)
     logger.info(f"PID {os.getpid()}")
 
     s = sched.scheduler()
     initial_series = get_initial_series(instrums)
-    ticker = Ticker(initial_series, email, window_size, rel_eps, s, ticks_freq, saving_freq)
+    ticker = Ticker(initial_series, email, window_size, num_std_devs_thresh, s, ticks_freq, saving_freq)
     s.enter(delay=0, priority=1, action=ticker.tick, argument=(ticker,))
 
     def on_sigterm(sig, stack):

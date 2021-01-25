@@ -4,6 +4,7 @@ import datetime
 import os.path
 from dataclasses import dataclass
 import csv
+from math import sqrt
 from typing import List, Optional, Callable, Any, Mapping
 
 YEAR_BASE = 365
@@ -240,8 +241,8 @@ class OHLCSeries:
         # TODO: persist name
         return OHLCSeries(instr_code, series, name=None)
 
-    def avg_of_last_elems(self, num_elems: int,
-                          field_getter: Callable[[OHLC], float] = lambda x: x.close) -> float:
+    def mean_of_last_elems(self, num_elems: int,
+                           field_getter: Callable[[OHLC], float] = lambda x: x.close) -> float:
         """gets average of last num_elems values of this series, for field specified by field_getter"""
         if len(self.ohlc_series) < num_elems:
             raise ValueError(f"Series has less than {num_elems}")
@@ -249,6 +250,21 @@ class OHLCSeries:
         for ohlc in self.ohlc_series[-num_elems:]:
             agg_val += field_getter(ohlc)
         return agg_val / num_elems
+
+    def std_dev_of_last_elems(self, num_elems,
+                              field_getter: Callable[[OHLC], float] = lambda x: x.close,
+                              mean: Optional[float] = None) -> float:
+        """gets standard deviation of last num_elems values of this series, for field specified by field_getter"""
+        if mean is None:
+            mean = self.mean_of_last_elems(num_elems, field_getter)
+        if len(self.ohlc_series) < num_elems:
+            raise ValueError(f"Series has less than {num_elems}")
+        agg_val = 0.0
+        # "Corrected sample standard deviation"
+        # TODO: std dev of log returns instead?
+        for ohlc in self.ohlc_series[-num_elems:]:
+            agg_val += (field_getter(ohlc) - mean) ** 2
+        return sqrt(agg_val / (num_elems - 1))
 
 
 @dataclass(frozen=True)
