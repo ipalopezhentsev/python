@@ -167,9 +167,11 @@ class Ticker:
                 self.time_last_email_sent = now
                 self.codes_sent_today |= triggered.keys()
             else:
-                logger.info("Skip sending email as nothing to report or already sent today. Current values:")
-                for instr, text in not_triggered.items():
-                    logger.info(f"{instr}: {text}")
+                logger.info("Skip sending email as nothing to report or already sent today.")
+                if len(not_triggered) != 0:
+                    logger.info("Current values:")
+                    for instr, text in not_triggered.items():
+                        logger.info(f"{instr}: {text}")
 
             if self.time_last_save is None or now - self.time_last_save > self.saving_freq:
                 logger.info("Saving series")
