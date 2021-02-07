@@ -277,3 +277,27 @@ class IntradayQuote:
     is_trading: bool
     # time of latest trade?
     time: datetime.time
+
+
+class MovingAvgCalculator:
+    """calculates moving average given window size"""
+
+    def __init__(self, window: int):
+        if window < 2:
+            raise ValueError("Window must be at least 2")
+        self.window = window
+        self.buffer: List[float] = [0.0] * window
+        self.cur_idx = 0
+        self.agg_sum = 0.0
+        self.num_inserted = 0
+
+    def add(self, elem: float) -> None:
+        val_to_subtract = self.buffer[self.cur_idx]
+        self.buffer[self.cur_idx] = elem
+        self.agg_sum -= val_to_subtract
+        self.agg_sum += elem
+        self.cur_idx = self.cur_idx + 1 if self.cur_idx != self.window - 1 else 0
+        self.num_inserted += 1
+
+    def avg(self) -> Optional[float]:
+        return self.agg_sum / self.window if self.num_inserted >= self.window else None

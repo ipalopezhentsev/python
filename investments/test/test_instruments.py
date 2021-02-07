@@ -1,6 +1,7 @@
 from datetime import date, timedelta
 
-from investments.instruments import Bond, AmortizationScheduleEntry, CouponScheduleEntry, YEAR_BASE, OHLC, OHLCSeries
+from investments.instruments import Bond, AmortizationScheduleEntry, CouponScheduleEntry, YEAR_BASE, OHLC, OHLCSeries, \
+    MovingAvgCalculator
 import pytest
 
 
@@ -232,4 +233,17 @@ class TestOHLCSeries:
         assert series.mean_of_last_elems(4) == (close[0] + close[1] + close[2] + close[3]) / 4
         with pytest.raises(ValueError):
             series.mean_of_last_elems(5)
+
+
+class TestMovingAvg:
+    def test_simple(self):
+        elems = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
+        window = 2
+        avgs = [None, (elems[0] + elems[1]) / window, (elems[1] + elems[2]) / window, (elems[2] + elems[3]) / window,
+                (elems[3] + elems[4]) / window, (elems[4] + elems[5]) / window]
+        calc = MovingAvgCalculator(window)
+        for idx, elem in enumerate(elems):
+            calc.add(elem)
+            expected_avg = avgs[idx]
+            assert calc.avg() == expected_avg
 
