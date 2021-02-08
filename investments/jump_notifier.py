@@ -3,9 +3,10 @@ import sys
 import signal
 import argparse
 import smtplib
+from dataclasses import dataclass
 from email.mime.text import MIMEText
 import sched
-from typing import List, Dict, Optional, Set
+from typing import List, Dict, Optional, Set, Tuple
 
 from investments import moex, instruments
 import logging
@@ -50,8 +51,14 @@ def refresh_series(cur_series: Dict[moex.Instrument, instruments.OHLCSeries]) \
     return good_series, errors
 
 
+@dataclass
+class IntradayQuotes:
+    time_of_last_trade: datetime.time
+    moving_avg: instruments.MovingAvgCalculator
+
+
 def get_triggered_signals(series: Dict[moex.Instrument, instruments.OHLCSeries],
-                          intraday_quotes: Dict[moex.Instrument, instruments.MovingAvgCalculator],
+                          intraday_quotes: Dict[moex.Instrument, IntradayQuotes],
                           hist_window_size: int, intraday_window_size: int, num_std_devs_thresh: float) \
         -> (Dict[moex.Instrument, str], Dict[moex.Instrument, str]):
     """returns tuple whose first element is triggered instruments and second is all others, with clarifying message"""
@@ -64,16 +71,23 @@ def get_triggered_signals(series: Dict[moex.Instrument, instruments.OHLCSeries],
             if not quote.is_trading:
                 logger.info(f"Skipping {instr} as it's not currently trading")
                 continue
+            time_of_last_trade = quote.time
             if instr in intraday_quotes:
                 instr_intraday_quotes = intraday_quotes[instr]
+                if time_of_last_trade < instr_intraday_quotes.time_of_last_trade:
+                    # trading day switched
+                    logger.info(f"Trading day switched for {instr}, resetting intraday averager")
+                    instr_intraday_quotes.moving_avg = instruments.MovingAvgCalculator(intraday_window_size)
+                instr_intraday_quotes.time_of_last_trade = time_of_last_trade
             else:
-                instr_intraday_quotes = instruments.MovingAvgCalculator(intraday_window_size)
+                instr_intraday_quotes = IntradayQuotes(time_of_last_trade,
+                                                       instruments.MovingAvgCalculator(intraday_window_size))
                 intraday_quotes[instr] = instr_intraday_quotes
-            instr_intraday_quotes.add(quote.last)
+            instr_intraday_quotes.moving_avg.add(quote.last)
 
             hist_mean = ser.mean_of_last_elems(hist_window_size)
             std_dev = ser.std_dev_of_last_elems(hist_window_size, mean=hist_mean)
-            intra_mean = instr_intraday_quotes.avg()
+            intra_mean = instr_intraday_quotes.moving_avg.avg()
             if intra_mean is None:
                 logger.info(f"Skipping {instr} as it hasn't accumulated {intraday_window_size} intraday quotes yet")
                 continue
@@ -81,17 +95,20 @@ def get_triggered_signals(series: Dict[moex.Instrument, instruments.OHLCSeries],
             nstd_devs = num_std_devs_thresh * std_dev
             observed_num_std_devs_jump = abs(intra_mean - hist_mean) / std_dev
             if intra_mean > hist_mean + nstd_devs:
-                triggered[instr] = f"Jump UP {round(rel_diff * 100.0, 2)}% to {intra_mean} " \
+                triggered[instr] = f"Jump UP {round(rel_diff * 100.0, 2)}% to {round(intra_mean, 2)} " \
+                                   f"({intraday_window_size} tick avg) " \
                                    f"from average of {round(hist_mean, 2)} of last {hist_window_size} days " \
                                    f"(jump of {round(observed_num_std_devs_jump, 2)} std. devs from mean)"
                 logger.warning(f"{instr} triggered")
             elif intra_mean < hist_mean - nstd_devs:
-                triggered[instr] = f"Jump DOWN {round(rel_diff * 100.0, 2)}% to {intra_mean} " \
+                triggered[instr] = f"Jump DOWN {round(rel_diff * 100.0, 2)}% to {round(intra_mean, 2)} " \
+                                   f"({intraday_window_size} tick avg) " \
                                    f"from average of {round(hist_mean, 2)} of last {hist_window_size} days " \
                                    f"(jump of {round(observed_num_std_devs_jump, 2)} std. devs from mean)"
                 logger.warning(f"{instr} triggered")
             else:
-                not_triggered[instr] = f"{intra_mean} is {round(rel_diff * 100.0, 2)}% jump over last " \
+                not_triggered[instr] = f"{round(intra_mean,2)} ({intraday_window_size} tick avg) is " \
+                                       f"{round(rel_diff * 100.0, 2)}% jump over last " \
                                        f"{hist_window_size} days average of {round(hist_mean, 2)} " \
                                        f"(jump of {round(observed_num_std_devs_jump, 2)} std. devs from mean)"
         except Exception as ex:
@@ -155,7 +172,7 @@ class Ticker:
         self.time_last_save: Optional[datetime.datetime] = None
         self.time_last_email_sent: Optional[datetime.datetime] = None
         self.codes_sent_today: Set[moex.Instrument] = set()
-        self.intraday_quotes: Dict[moex.Instrument, instruments.MovingAvgCalculator] = {}
+        self.intraday_quotes: Dict[moex.Instrument, IntradayQuotes] = {}
 
     def tick(self, /, *args, **kwargs):
         now = datetime.datetime.now()
@@ -170,8 +187,6 @@ class Ticker:
                                                   self.time_last_email_sent.date() != now.date()
             if day_changed_since_last_notification:
                 self.codes_sent_today.clear()
-                # TODO: persist?
-                self.intraday_quotes.clear()
             triggered_instruments_already_reported_today = len(self.codes_sent_today) != 0 and \
                                                            triggered.keys() <= self.codes_sent_today
             duplicate = not day_changed_since_last_notification and triggered_instruments_already_reported_today
