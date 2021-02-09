@@ -154,12 +154,17 @@ class Ticker:
 
             day_changed_since_last_not_triggered_notification = self.time_last_sent_not_triggered is None or \
                                                                 self.time_last_sent_not_triggered.date() != now.date()
-            if len(not_triggered) != 0 and day_changed_since_last_not_triggered_notification:
-                (header, msg) = get_mail_text_not_triggered(not_triggered)
-                logger.info(header)
-                logger.info(msg)
-                send_mail(self.email, header, msg)
-                self.time_last_sent_not_triggered = now
+            if len(not_triggered) != 0:
+                if day_changed_since_last_not_triggered_notification:
+                    (header, msg) = get_mail_text_not_triggered(not_triggered)
+                    logger.info(header)
+                    logger.info(msg)
+                    send_mail(self.email, header, msg)
+                    self.time_last_sent_not_triggered = now
+                else:
+                    logger.info("Skipping sending not triggered instruments as already sent today")
+            else:
+                logger.info("Skipping sending not triggered instruments as all of them were not ready")
         except Exception as ex:
             logger.error("Error happened on tick", exc_info=ex, stack_info=True)
         finally:
