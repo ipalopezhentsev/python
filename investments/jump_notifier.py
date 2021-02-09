@@ -51,72 +51,6 @@ def refresh_series(cur_series: Dict[moex.Instrument, instruments.OHLCSeries]) \
     return good_series, errors
 
 
-@dataclass
-class IntradayQuotes:
-    time_of_last_trade: datetime.time
-    moving_avg: instruments.MovingAvgCalculator
-
-
-def get_triggered_signals(series: Dict[moex.Instrument, instruments.OHLCSeries],
-                          intraday_quotes: Dict[moex.Instrument, IntradayQuotes],
-                          hist_window_size: int, intraday_window_size: int, num_std_devs_thresh: float) \
-        -> (Dict[moex.Instrument, str], Dict[moex.Instrument, str]):
-    """returns tuple whose first element is triggered instruments and second is all others, with clarifying message"""
-    # TODO: for bonds: add notification its price gets < 100.
-    triggered = {}
-    not_triggered = {}
-    for instr, ser in series.items():
-        try:
-            quote = instr.load_intraday_quotes()
-            if not quote.is_trading:
-                logger.info(f"Skipping {instr} as it's not currently trading")
-                continue
-            time_of_last_trade = quote.time
-            if instr in intraday_quotes:
-                instr_intraday_quotes = intraday_quotes[instr]
-                if time_of_last_trade < instr_intraday_quotes.time_of_last_trade:
-                    # trading day switched
-                    logger.info(f"Trading day switched for {instr}, resetting intraday averager")
-                    instr_intraday_quotes.moving_avg = instruments.MovingAvgCalculator(intraday_window_size)
-                instr_intraday_quotes.time_of_last_trade = time_of_last_trade
-            else:
-                instr_intraday_quotes = IntradayQuotes(time_of_last_trade,
-                                                       instruments.MovingAvgCalculator(intraday_window_size))
-                intraday_quotes[instr] = instr_intraday_quotes
-            instr_intraday_quotes.moving_avg.add(quote.last)
-
-            hist_mean = ser.mean_of_last_elems(hist_window_size)
-            std_dev = ser.std_dev_of_last_elems(hist_window_size, mean=hist_mean)
-            intra_mean = instr_intraday_quotes.moving_avg.avg()
-            if intra_mean is None:
-                logger.info(f"Skipping {instr} as it hasn't accumulated {intraday_window_size} intraday quotes yet")
-                continue
-            rel_diff = (intra_mean - hist_mean) / max(intra_mean, hist_mean)
-            nstd_devs = num_std_devs_thresh * std_dev
-            observed_num_std_devs_jump = abs(intra_mean - hist_mean) / std_dev
-            if intra_mean > hist_mean + nstd_devs:
-                triggered[instr] = f"Jump UP {round(rel_diff * 100.0, 2)}% to {round(intra_mean, 2)} " \
-                                   f"({intraday_window_size} tick avg) " \
-                                   f"from average of {round(hist_mean, 2)} of last {hist_window_size} days " \
-                                   f"(jump of {round(observed_num_std_devs_jump, 2)} std. devs from mean)"
-                logger.warning(f"{instr} triggered")
-            elif intra_mean < hist_mean - nstd_devs:
-                triggered[instr] = f"Jump DOWN {round(rel_diff * 100.0, 2)}% to {round(intra_mean, 2)} " \
-                                   f"({intraday_window_size} tick avg) " \
-                                   f"from average of {round(hist_mean, 2)} of last {hist_window_size} days " \
-                                   f"(jump of {round(observed_num_std_devs_jump, 2)} std. devs from mean)"
-                logger.warning(f"{instr} triggered")
-            else:
-                not_triggered[instr] = f"{round(intra_mean,2)} ({intraday_window_size} tick avg) is " \
-                                       f"{round(rel_diff * 100.0, 2)}% jump over last " \
-                                       f"{hist_window_size} days average of {round(hist_mean, 2)} " \
-                                       f"(jump of {round(observed_num_std_devs_jump, 2)} std. devs from mean)"
-        except Exception as ex:
-            logger.error(f"Error happened getting intraday rates for {instr}", exc_info=ex, stack_info=True)
-            triggered[instr] = f"Could not get intraday rates: {ex}"
-    return triggered, not_triggered
-
-
 def send_mail(email_address: str, msg_header: str, msg_text: str) -> None:
     msg = MIMEText(msg_text)
     msg['Subject'] = msg_header
@@ -139,22 +73,27 @@ def send_mail(email_address: str, msg_header: str, msg_text: str) -> None:
     mail_server.quit()
 
 
-def get_mail_text(triggered_signals: Dict[moex.Instrument, str],
-                  not_triggered_instruments: Dict[moex.Instrument, str],
-                  errors: Dict[moex.Instrument, Exception]) -> (str, str):
-    header = "WARN: Jumps found for " + ", ".join(map(lambda i: i.code, triggered_signals.keys()))
-    msg = "Triggered instruments:\n"
-    for instr, sig in triggered_signals.items():
-        msg += f"{instr}: {sig}\n"
-    if len(not_triggered_instruments) != 0:
-        msg += "\n\nNot triggered instruments:\n"
-        for instr, txt in not_triggered_instruments.items():
-            msg += f"{instr}: {txt}\n"
-    if len(errors) != 0:
-        msg += "\n\nErrors:\n\n"
-        for instr, err in errors.items():
-            msg += f"{instr}: {err}\n\n"
+def get_mail_text_triggered(instr: moex.Instrument, sig: str) -> (str, str):
+    header = f"WARN: Jump found for {instr}"
+    msg = "Triggered instrument:\n"
+    msg += f"{instr}: {sig}\n"
     return header, msg
+
+
+def get_mail_text_not_triggered(not_triggered_instruments: Dict[moex.Instrument, str]) -> (str, str):
+    header = "INFO: Not triggered instruments"
+    msg = ""
+    for instr, txt in not_triggered_instruments.items():
+        msg += f"{instr}: {txt}\n"
+    return header, msg
+
+
+@dataclass
+class IntradayState:
+    time_of_last_trade: Optional[datetime.time]
+    moving_avg: instruments.MovingAvgCalculator
+    time_last_save: Optional[datetime.datetime]
+    time_last_email_sent: Optional[datetime.datetime]
 
 
 class Ticker:
@@ -169,59 +108,110 @@ class Ticker:
         self.scheduler = scheduler
         self.ticks_freq = ticks_freq
         self.saving_freq = saving_freq
-        self.time_last_save: Optional[datetime.datetime] = None
-        self.time_last_email_sent: Optional[datetime.datetime] = None
-        self.codes_sent_today: Set[moex.Instrument] = set()
-        self.intraday_quotes: Dict[moex.Instrument, IntradayQuotes] = {}
+        self.intraday_states: Dict[moex.Instrument, IntradayState] = {}
+        self.time_last_sent_not_triggered: Optional[datetime.datetime] = None
 
     def tick(self, /, *args, **kwargs):
         now = datetime.datetime.now()
         logger.info("Start tick")
         try:
-            good_series, errors = refresh_series(self.cur_series)
-            triggered, not_triggered = get_triggered_signals(good_series, self.intraday_quotes,
-                                                             self.hist_window_size, self.intraday_window_size,
-                                                             self.num_std_devs_thresh)
-            # send not more than 1 warning per day (except case when more series get triggered through the day)
-            day_changed_since_last_notification = self.time_last_email_sent is None or \
-                                                  self.time_last_email_sent.date() != now.date()
-            if day_changed_since_last_notification:
-                self.codes_sent_today.clear()
-            triggered_instruments_already_reported_today = len(self.codes_sent_today) != 0 and \
-                                                           triggered.keys() <= self.codes_sent_today
-            duplicate = not day_changed_since_last_notification and triggered_instruments_already_reported_today
+            not_triggered: Dict[moex.Instrument, str] = {}
+            for instr, series in self.cur_series.items():
+                try:
+                    if instr in self.intraday_states:
+                        intraday_state = self.intraday_states[instr]
+                    else:
+                        intraday_state = IntradayState(None,
+                                                       instruments.MovingAvgCalculator(
+                                                           self.intraday_window_size), None, None)
+                    self.intraday_states[instr] = intraday_state
+                    is_triggered, msg = self.get_triggered_signals(instr, series, intraday_state)
+                    day_changed_since_last_notification = intraday_state.time_last_email_sent is None or \
+                                                          intraday_state.time_last_email_sent.date() != now.date()
+                    if is_triggered:
+                        if day_changed_since_last_notification:
+                            (header, msg) = get_mail_text_triggered(instr, msg)
+                            logger.info(header)
+                            logger.info(msg)
+                            send_mail(self.email, header, msg)
+                            intraday_state.time_last_email_sent = now
+                        else:
+                            logger.info(f"Triggered but skip sending email for {instr} as already sent today.")
+                    else:
+                        not_triggered[instr] = msg
 
-            if (len(triggered) != 0 or len(errors) != 0) and not duplicate:
-                (header, msg) = get_mail_text(triggered, not_triggered, errors)
+                    self.save_series(instr, series, intraday_state, now)
+                except Exception as ex:
+                    logger.error(f"Error happened for {instr}", exc_info=ex, stack_info=True)
+
+            day_changed_since_last_not_triggered_notification = self.time_last_sent_not_triggered is None or \
+                                                                self.time_last_sent_not_triggered.date() != now.date()
+            if len(not_triggered) != 0 and day_changed_since_last_not_triggered_notification:
+                (header, msg) = get_mail_text_not_triggered(not_triggered)
                 logger.info(header)
                 logger.info(msg)
                 send_mail(self.email, header, msg)
-                self.time_last_email_sent = now
-                self.codes_sent_today |= triggered.keys()
-            else:
-                logger.info("Skip sending email as nothing to report or already sent today.")
-                if len(not_triggered) != 0:
-                    logger.info("Current values:")
-                    for instr, text in not_triggered.items():
-                        logger.info(f"{instr}: {text}")
-
-            if self.time_last_save is None or now - self.time_last_save > self.saving_freq:
-                logger.info("Saving series")
-                self.save_series(good_series)
-                logger.info("Done saving")
-                self.time_last_save = now
+                self.time_last_sent_not_triggered = now
         except Exception as ex:
             logger.error("Error happened on tick", exc_info=ex, stack_info=True)
         finally:
             self.scheduler.enter(self.ticks_freq, 1, self.tick, argument=(self,))
             logger.info("End tick")
 
-    @staticmethod
-    def save_series(series: Dict[moex.Instrument, instruments.OHLCSeries]):
-        for instr, ser in series.items():
+    def get_triggered_signals(self, instr: moex.Instrument, ser: instruments.OHLCSeries,
+                              intraday_state: IntradayState) -> (bool, str):
+        """returns tuple whose first element is true if triggered and second is message with details"""
+        # TODO: for bonds: add notification its price gets < 100.
+        try:
+            instr.update_ohlc_table(ser)
+            quote = instr.load_intraday_quotes()
+            if not quote.is_trading:
+                return False, f"Skipping {instr} as it's not currently trading"
+            time_of_last_trade = quote.time
+            if intraday_state.time_of_last_trade is not None and \
+                    time_of_last_trade < intraday_state.time_of_last_trade:
+                # trading day switched
+                logger.info(f"Trading day switched for {instr}, resetting intraday averager")
+                intraday_state.moving_avg = instruments.MovingAvgCalculator(self.intraday_window_size)
+            intraday_state.time_of_last_trade = time_of_last_trade
+            intraday_state.moving_avg.add(quote.last)
+
+            hist_mean = ser.mean_of_last_elems(self.hist_window_size)
+            std_dev = ser.std_dev_of_last_elems(self.hist_window_size, mean=hist_mean)
+            intra_mean = intraday_state.moving_avg.avg()
+            if intra_mean is None:
+                return False, f"Skipping {instr} as it hasn't accumulated {self.intraday_window_size} intraday quotes yet"
+            rel_diff = (intra_mean - hist_mean) / max(intra_mean, hist_mean)
+            nstd_devs = self.num_std_devs_thresh * std_dev
+            observed_num_std_devs_jump = abs(intra_mean - hist_mean) / std_dev
+            if intra_mean > hist_mean + nstd_devs:
+                return True, f"Jump UP {round(rel_diff * 100.0, 2)}% to {round(intra_mean, 2)} " \
+                             f"({self.intraday_window_size} tick avg) " \
+                             f"from average of {round(hist_mean, 2)} of last {self.hist_window_size} days " \
+                             f"(jump of {round(observed_num_std_devs_jump, 2)} std. devs from mean)"
+            elif intra_mean < hist_mean - nstd_devs:
+                return True, f"Jump DOWN {round(rel_diff * 100.0, 2)}% to {round(intra_mean, 2)} " \
+                             f"({self.intraday_window_size} tick avg) " \
+                             f"from average of {round(hist_mean, 2)} of last {self.hist_window_size} days " \
+                             f"(jump of {round(observed_num_std_devs_jump, 2)} std. devs from mean)"
+            else:
+                return False, f"{round(intra_mean, 2)} ({self.intraday_window_size} tick avg) is " \
+                              f"{round(rel_diff * 100.0, 2)}% jump over last " \
+                              f"{self.hist_window_size} days average of {round(hist_mean, 2)} " \
+                              f"(jump of {round(observed_num_std_devs_jump, 2)} std. devs from mean)"
+        except Exception as ex:
+            logger.error(f"Error happened checking {instr}", exc_info=ex, stack_info=True)
+            return True, f"Could not check: {ex}"
+
+    def save_series(self, instr: moex.Instrument, ser: instruments.OHLCSeries,
+                    intraday_state: IntradayState, now: datetime.datetime):
+        if intraday_state.time_last_save is None or now - intraday_state.time_last_save > self.saving_freq:
+            logger.info(f"Saving series for {instr}")
             try:
                 fname = instrument_to_filename(instr)
                 ser.save_to_csv(fname)
+                logger.info("Done saving")
+                intraday_state.time_last_save = now
             except Exception as ex:
                 logger.error(f"Failed to save series for {instr}", exc_info=ex, stack_info=True)
 
@@ -232,8 +222,10 @@ def main():
                     "significantly from previous days average",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("--email", default="root", help="E-mail address to which send notifications")
-    parser.add_argument("--hist-window", type=int, default=5, help="Number of business days to calculate historical average")
-    parser.add_argument("--intra-window", type=int, default=3, help="Number of ticks (see --ticks-freq-seconds) to calculate intraday average")
+    parser.add_argument("--hist-window", type=int, default=5,
+                        help="Number of business days to calculate historical average")
+    parser.add_argument("--intra-window", type=int, default=3,
+                        help="Number of ticks (see --ticks-freq-seconds) to calculate intraday average")
     parser.add_argument("--ticks-freq-seconds", type=int, default=60,
                         help="Check intraday rates with this frequency, in seconds")
     parser.add_argument("--saving-freq-hours", type=int, default=24,
