@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from email.mime.text import MIMEText
 import sched
 from typing import List, Dict, Optional, Set, Tuple
+from enum import Enum
 
 from investments import moex, instruments
 import logging
@@ -96,6 +97,12 @@ class IntradayState:
     time_last_email_sent: Optional[datetime.datetime]
 
 
+class Outcome(Enum):
+    TRIGGERED = 1
+    NOT_TRIGGERED_DUE_TO_THRESHOLD = 2
+    NOT_TRIGGERED_DUE_TO_NOT_READY = 3
+
+
 class Ticker:
     def __init__(self, initial_series: Dict[moex.Instrument, instruments.OHLCSeries],
                  email: str, hist_window_size: int, intraday_window_size: int, num_std_devs_thresh: float,
@@ -125,10 +132,10 @@ class Ticker:
                                                        instruments.MovingAvgCalculator(
                                                            self.intraday_window_size), None, None)
                     self.intraday_states[instr] = intraday_state
-                    is_triggered, msg = self.get_triggered_signals(instr, series, intraday_state)
+                    outcome, msg = self.get_triggered_signals(instr, series, intraday_state)
                     day_changed_since_last_notification = intraday_state.time_last_email_sent is None or \
                                                           intraday_state.time_last_email_sent.date() != now.date()
-                    if is_triggered:
+                    if outcome == Outcome.TRIGGERED:
                         if day_changed_since_last_notification:
                             (header, msg) = get_mail_text_triggered(instr, msg)
                             logger.info(header)
@@ -137,8 +144,9 @@ class Ticker:
                             intraday_state.time_last_email_sent = now
                         else:
                             logger.info(f"Triggered but skip sending email for {instr} as already sent today.")
-                    else:
+                    elif outcome == Outcome.NOT_TRIGGERED_DUE_TO_THRESHOLD:
                         not_triggered[instr] = msg
+                    # else - we ignore NOT_TRIGGERED_DUE_TO_NOT_READY to not send 1 mail with useless not ready info
 
                     self.save_series(instr, series, intraday_state, now)
                 except Exception as ex:
@@ -159,14 +167,14 @@ class Ticker:
             logger.info("End tick")
 
     def get_triggered_signals(self, instr: moex.Instrument, ser: instruments.OHLCSeries,
-                              intraday_state: IntradayState) -> (bool, str):
+                              intraday_state: IntradayState) -> (Outcome, str):
         """returns tuple whose first element is true if triggered and second is message with details"""
         # TODO: for bonds: add notification its price gets < 100.
         try:
             instr.update_ohlc_table(ser)
             quote = instr.load_intraday_quotes()
             if not quote.is_trading:
-                return False, f"Skipping {instr} as it's not currently trading"
+                return Outcome.NOT_TRIGGERED_DUE_TO_NOT_READY, f"Skipping {instr} as it's not currently trading"
             time_of_last_trade = quote.time
             if intraday_state.time_of_last_trade is not None and \
                     time_of_last_trade < intraday_state.time_of_last_trade:
@@ -180,25 +188,26 @@ class Ticker:
             std_dev = ser.std_dev_of_last_elems(self.hist_window_size, mean=hist_mean)
             intra_mean = intraday_state.moving_avg.avg()
             if intra_mean is None:
-                return False, f"Skipping {instr} as it hasn't accumulated {self.intraday_window_size} intraday quotes yet"
+                return Outcome.NOT_TRIGGERED_DUE_TO_NOT_READY, f"Skipping {instr} as it hasn't accumulated " \
+                                                               f"{self.intraday_window_size} intraday quotes yet"
             rel_diff = (intra_mean - hist_mean) / max(intra_mean, hist_mean)
             nstd_devs = self.num_std_devs_thresh * std_dev
             observed_num_std_devs_jump = abs(intra_mean - hist_mean) / std_dev
             if intra_mean > hist_mean + nstd_devs:
-                return True, f"Jump UP {round(rel_diff * 100.0, 2)}% to {round(intra_mean, 2)} " \
-                             f"({self.intraday_window_size} tick avg) " \
-                             f"from average of {round(hist_mean, 2)} of last {self.hist_window_size} days " \
-                             f"(jump of {round(observed_num_std_devs_jump, 2)} std. devs from mean)"
+                return Outcome.TRIGGERED, f"Jump UP {round(rel_diff * 100.0, 2)}% to {round(intra_mean, 2)} " \
+                                          f"({self.intraday_window_size} tick avg) " \
+                                          f"from average of {round(hist_mean, 2)} of last {self.hist_window_size} days " \
+                                          f"(jump of {round(observed_num_std_devs_jump, 2)} std. devs from mean)"
             elif intra_mean < hist_mean - nstd_devs:
-                return True, f"Jump DOWN {round(rel_diff * 100.0, 2)}% to {round(intra_mean, 2)} " \
-                             f"({self.intraday_window_size} tick avg) " \
-                             f"from average of {round(hist_mean, 2)} of last {self.hist_window_size} days " \
-                             f"(jump of {round(observed_num_std_devs_jump, 2)} std. devs from mean)"
+                return Outcome.TRIGGERED, f"Jump DOWN {round(rel_diff * 100.0, 2)}% to {round(intra_mean, 2)} " \
+                                          f"({self.intraday_window_size} tick avg) " \
+                                          f"from average of {round(hist_mean, 2)} of last {self.hist_window_size} days " \
+                                          f"(jump of {round(observed_num_std_devs_jump, 2)} std. devs from mean)"
             else:
-                return False, f"{round(intra_mean, 2)} ({self.intraday_window_size} tick avg) is " \
-                              f"{round(rel_diff * 100.0, 2)}% jump over last " \
-                              f"{self.hist_window_size} days average of {round(hist_mean, 2)} " \
-                              f"(jump of {round(observed_num_std_devs_jump, 2)} std. devs from mean)"
+                return Outcome.NOT_TRIGGERED_DUE_TO_THRESHOLD, f"{round(intra_mean, 2)} ({self.intraday_window_size} tick avg) is " \
+                        f"{round(rel_diff * 100.0, 2)}% jump over last " \
+                        f"{self.hist_window_size} days average of {round(hist_mean, 2)} " \
+                        f"(jump of {round(observed_num_std_devs_jump, 2)} std. devs from mean)"
         except Exception as ex:
             logger.error(f"Error happened checking {instr}", exc_info=ex, stack_info=True)
             return True, f"Could not check: {ex}"
