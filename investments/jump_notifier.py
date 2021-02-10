@@ -135,6 +135,7 @@ class Ticker:
                     outcome, msg = self.get_triggered_signals(instr, series, intraday_state)
                     day_changed_since_last_notification = intraday_state.time_last_email_sent is None or \
                                                           intraday_state.time_last_email_sent.date() != now.date()
+                    logger.info(f"Outcome: {outcome}")
                     if outcome == Outcome.TRIGGERED:
                         if day_changed_since_last_notification:
                             (header, msg) = get_mail_text_triggered(instr, msg)
