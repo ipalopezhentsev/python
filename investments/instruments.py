@@ -297,7 +297,9 @@ class MovingAvgCalculator:
         self.agg_sum -= val_to_subtract
         self.agg_sum += elem
         self.cur_idx = self.cur_idx + 1 if self.cur_idx != self.window - 1 else 0
-        self.num_inserted += 1
+        # 'if' is for protection from overflow which will turn avg to None
+        if self.num_inserted < self.window:
+            self.num_inserted += 1
 
     def avg(self) -> Optional[float]:
         return self.agg_sum / self.window if self.num_inserted >= self.window else None
