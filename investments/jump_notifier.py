@@ -76,14 +76,15 @@ def send_mail(email_address: str, msg_header: str, msg_text: str) -> None:
 
 def get_mail_text_triggered(instr: moex.Instrument, sig: str) -> (str, str):
     header = f"WARN: Jump found for {instr}"
-    msg = "Triggered instrument:\n"
+    msg = f"Timestamp: {datetime.datetime.now()}\n"
+    msg += "Triggered instrument:\n"
     msg += f"{instr}: {sig}\n"
     return header, msg
 
 
 def get_mail_text_not_triggered(not_triggered_instruments: Dict[moex.Instrument, str]) -> (str, str):
     header = "INFO: Not triggered instruments"
-    msg = ""
+    msg = f"Timestamp: {datetime.datetime.now()}\n"
     for instr, txt in not_triggered_instruments.items():
         msg += f"{instr}: {txt}\n"
     return header, msg
