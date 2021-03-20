@@ -18,7 +18,8 @@ one_day = datetime.timedelta(days=1)
 
 
 def load_coupon_schedule_xml(isin: str) -> str:
-    url = f"{ISS_URL}securities/{isin}/bondization.xml?iss.meta=off"
+    # Without "limit=unlimited" loads only first 20 coupons!
+    url = f"{ISS_URL}securities/{isin}/bondization.xml?iss.meta=off&limit=unlimited"
     data = requests.get(url)
     return data.text
 
