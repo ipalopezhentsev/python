@@ -7,6 +7,8 @@ import csv
 from math import sqrt
 from typing import List, Optional, Callable, Any, Mapping
 
+from investments.utils import find_root_newton
+
 YEAR_BASE = 365
 
 
@@ -52,8 +54,9 @@ class AmortizationScheduleEntry:
 class Bond:
     """coupons, ordered by date ascending"""
     coupons: List[CouponScheduleEntry]
-    """amortizations (notional changes), ordered by date ascending. Last entry corresponds to settlement date,
-    so even bonds without amortization will always contain one entry in this list"""
+    """amortizations (notional changes), ordered by date ascending. Last entry corresponds 
+    to notional repayment on settlement date, so even bonds without amortization will always 
+    contain one entry in this list"""
     amortizations: List[AmortizationScheduleEntry]
     isin: Optional[str] = None
     name: Optional[str] = None
@@ -108,19 +111,20 @@ class Bond:
                     break
             return self.initial_notional * (1.0 - accum_prc / 100.0)
 
-    def coupon_on_date(self, dt: datetime.date) -> float:
-        """returns coupon that should be received on dt or 0 if passed date is not from coupon schedule"""
-        idx, coupon = next(filter(lambda c: c[1].coupon_date == dt, enumerate(self.coupons)), None)
-        if coupon is None:
+    def accrued_coupon_on_date(self, dt: datetime.date) -> float:
+        """returns coupon or its part accrued on dt (in ccy).
+        "Накопленный купонный доход" in Russian. Is paid in addition to bond price when we buy it.
+        """
+        idx, closest_coupon = next(filter(lambda c: c[1].coupon_date >= dt, enumerate(self.coupons)), None)
+        if closest_coupon is None:
             return 0
-        else:
-            eff_notional = self.notional_on_date(coupon.coupon_date)
-            # why? see attached test RU000A0JWSQ7.xml - coupon for 2018-06-08 has start date 2018-03-12, giving
-            # 88 days diff, but the cited coupon value doesn't satisfy it, it's calculated from standard 91 days
-            # diff, which appear only if we take previous coupon date 2018-03-09
-            coupon_start = coupon.start_date if idx == 0 else self.coupons[idx - 1].coupon_date
-            year_fract = (coupon.coupon_date - coupon_start).days / YEAR_BASE
-            return round(eff_notional * (coupon.yearly_prc / 100.0) * year_fract, 2)
+        eff_notional = self.notional_on_date(dt)
+        # why? see attached test RU000A0JWSQ7.xml - coupon for 2018-06-08 has start date 2018-03-12, giving
+        # 88 days diff, but the cited coupon value doesn't satisfy it, it's calculated from standard 91 days
+        # diff, which appear only if we take previous coupon date 2018-03-09
+        coupon_start = closest_coupon.start_date if idx == 0 else self.coupons[idx - 1].coupon_date
+        year_fract = (dt - coupon_start).days / YEAR_BASE
+        return round(eff_notional * (closest_coupon.yearly_prc / 100.0) * year_fract, 2)
 
     def payments_since_date(self, dt: datetime.date) -> (List[CouponScheduleEntry], List[AmortizationScheduleEntry]):
         """Returns tuple where first element means coupons expected starting from the passed date (inclusively)
@@ -128,6 +132,112 @@ class Bond:
         coupons = [coupon for coupon in self.coupons if coupon.coupon_date >= dt]
         amortizations = [amort for amort in self.amortizations if amort.amort_date >= dt]
         return coupons, amortizations
+
+    def yield_to_maturity(self, price_buy_prc: float, date_buy: datetime.date, date_settle: datetime.date,
+                          accrued_coupon: float = None, coupon_tax_prc=None, commission=None):
+        """YTM is the (theoretical) internal rate of return (IRR, overall interest rate)
+        earned by an investor who buys the bond today at the market price, assuming that
+        the bond is held until maturity, and that all coupon and principal payments are
+        made on schedule.
+         https://en.wikipedia.org/wiki/Yield_to_maturity
+
+         Arguments to match MOEX figures:
+             price_buy: price in percentage (0-100) of notional active on date_buy.
+             There is NO need to add accrued coupon yourself - we take care of it.
+             date_buy: day on which you bought
+             date_settle: day when you actually received the bond (usually date_buy + 1 business day)
+             accrued_coupon: coupon accrued on settle date, if not present will be calculated from coupon schedule.
+             If you want precision, pass here explicit value from broker.
+             coupon_tax_prc: tax on coupons (in fractions of 1)
+             commission: in ccy, commission paid on date_buy
+         """
+        if price_buy_prc < 0.0:
+            raise ValueError("price_buy_prc must be positive")
+        if date_buy > date_settle:
+            raise ValueError("Settle must be after buy date")
+        # you don't own bond before settlement...
+        coupons, amortizations = self.payments_since_date(date_settle)
+        if accrued_coupon is None:
+            # for some dates it's date_buy which matches MOEX quotes, for some it's date_settle...
+            accrued_coupon = self.accrued_coupon_on_date(date_buy)
+        # when we buy, we must also pay coupon accrued up to this date
+        price_buy = (price_buy_prc / 100.0) * self.notional_on_date(date_buy) + accrued_coupon
+        if commission is not None:
+            price_buy += commission
+        flows = [CashFlow(date_buy, -price_buy)]
+        for coupon in coupons:
+            val = coupon.value if coupon_tax_prc is None else coupon.value * (1.0 - coupon_tax_prc)
+            flows.append(CashFlow(coupon.coupon_date, val))
+        for amort in amortizations:
+            flows.append(CashFlow(amort.amort_date, amort.value))
+        return round(100.0 * CashFlows(flows).irr(), 2) / 100.0
+
+
+@dataclass(frozen=True)
+class CashFlow:
+    """Flow of money at specified date"""
+    date: datetime.date
+    """Negative - we pay, positive - we receive"""
+    flow: float
+
+    def years_since(self, base_date: datetime.date) -> float:
+        return (self.date - base_date).days / YEAR_BASE
+
+
+class CashFlows:
+    flows: List[CashFlow]
+
+    def __init__(self, flows: List[CashFlow]):
+        # TODO: actually these are constraints just for IRR, maybe move it there...
+        if len(flows) < 2:
+            raise ValueError("There must be at least 2 flows")
+        if not any(map(lambda flow: flow.flow > 0.0, flows)):
+            raise ValueError("There must be positive flows")
+        if not any(map(lambda flow: flow.flow < 0.0, flows)):
+            raise ValueError("There must be negative flows")
+        self.flows = flows
+
+    def irr(self) -> float:
+        """
+        Returns internal rate of return (in terms of 1)
+        For irr to be present, there must be both positive and negative flows.
+
+        The internal rate of return on an investment or project is the "annualized effective
+        compounded return rate" or rate of return that sets the net present value of all
+        cash flows (both positive and negative) from the investment equal to zero.
+
+        It is the discount rate at which the net present value of the future cash flows
+        is equal to the initial investment, and it is also the discount rate at which the
+        total present value of costs (negative cash flows) equals the total present value
+        of the benefits (positive cash flows).
+        https://en.wikipedia.org/wiki/Internal_rate_of_return#Exact_dates_of_cash_flows
+        """
+        r0 = 0.0
+        for flow in self.flows[1:]:
+            r0 += flow.flow
+        r0 = (-1.0 / self.flows[0].flow) * r0 - 1.0
+        irr, _, _ = find_root_newton(f=lambda r: self.npv(r), init_guess=r0,
+                                     f_der=lambda r: self.npv_der(r))
+        return irr
+
+    def npv(self, rate: float) -> float:
+        """Calculates net present worth of the project at specified interest rate
+        (in fractions of 1), assuming the project starts at the date of the first cash flow"""
+        res = 0.0
+        for flow in self.flows:
+            year_fract = flow.years_since(self.flows[0].date)
+            res += flow.flow / (1.0 + rate) ** year_fract
+        return res
+
+    def npv_der(self, rate: float) -> float:
+        """returns derivative of npv by interest rate (in fractions of 1)
+        https://en.wikipedia.org/wiki/Internal_rate_of_return#Exact_dates_of_cash_flows
+        """
+        res = 0.0
+        for flow in self.flows[1:]:
+            year_fract = flow.years_since(self.flows[0].date)
+            res -= flow.flow * year_fract / ((1.0 + rate) ** (year_fract + 1))
+        return res
 
 
 field_date = "DATE"
@@ -277,29 +387,3 @@ class IntradayQuote:
     is_trading: bool
     # time of latest trade?
     time: datetime.time
-
-
-class MovingAvgCalculator:
-    """calculates moving average given window size"""
-
-    def __init__(self, window: int):
-        if window < 2:
-            raise ValueError("Window must be at least 2")
-        self.window = window
-        self.buffer: List[float] = [0.0] * window
-        self.cur_idx = 0
-        self.agg_sum = 0.0
-        self.num_inserted = 0
-
-    def add(self, elem: float) -> None:
-        val_to_subtract = self.buffer[self.cur_idx]
-        self.buffer[self.cur_idx] = elem
-        self.agg_sum -= val_to_subtract
-        self.agg_sum += elem
-        self.cur_idx = self.cur_idx + 1 if self.cur_idx != self.window - 1 else 0
-        # 'if' is for protection from overflow which will turn avg to None
-        if self.num_inserted < self.window:
-            self.num_inserted += 1
-
-    def avg(self) -> Optional[float]:
-        return self.agg_sum / self.window if self.num_inserted >= self.window else None

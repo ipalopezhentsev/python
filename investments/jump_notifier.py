@@ -13,6 +13,7 @@ from investments import moex, instruments
 import logging
 import datetime
 import investments.logsetup
+from investments.utils import MovingAvgCalculator
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +94,7 @@ def get_mail_text_not_triggered(not_triggered_instruments: Dict[moex.Instrument,
 @dataclass
 class IntradayState:
     time_of_last_trade: Optional[datetime.time]
-    moving_avg: instruments.MovingAvgCalculator
+    moving_avg: MovingAvgCalculator
     time_last_save: Optional[datetime.datetime]
     time_last_email_sent: Optional[datetime.datetime]
 
@@ -130,7 +131,7 @@ class Ticker:
                         intraday_state = self.intraday_states[instr]
                     else:
                         intraday_state = IntradayState(None,
-                                                       instruments.MovingAvgCalculator(
+                                                       MovingAvgCalculator(
                                                            self.intraday_window_size), None, None)
                     self.intraday_states[instr] = intraday_state
                     outcome, msg = self.get_triggered_signals(instr, series, intraday_state)
@@ -187,7 +188,7 @@ class Ticker:
                     time_of_last_trade < intraday_state.time_of_last_trade:
                 # trading day switched
                 logger.info(f"Trading day switched for {instr}, resetting intraday averager")
-                intraday_state.moving_avg = instruments.MovingAvgCalculator(self.intraday_window_size)
+                intraday_state.moving_avg = MovingAvgCalculator(self.intraday_window_size)
             intraday_state.time_of_last_trade = time_of_last_trade
             intraday_state.moving_avg.add(quote.last)
 

@@ -1,7 +1,7 @@
 from datetime import date, timedelta
 
 from investments.instruments import Bond, AmortizationScheduleEntry, CouponScheduleEntry, YEAR_BASE, OHLC, OHLCSeries, \
-    MovingAvgCalculator
+    CashFlows, CashFlow
 import pytest
 
 
@@ -107,7 +107,7 @@ class TestBond:
         coupon_days_wrong = (coup2_date - coupons[1].start_date).days
         expected_coupon1_wrong = round((coupon_days_wrong / YEAR_BASE) *
                                        (coupons[0].yearly_prc / 100.0) * notional_on_coup2, 2)
-        assert b.coupon_on_date(coup2_date) == pytest.approx(expected_coupon1)
+        assert b.accrued_coupon_on_date(coup2_date) == pytest.approx(expected_coupon1)
         assert expected_coupon1 != pytest.approx(expected_coupon1_wrong)
 
     def test_payments_since_date(self):
@@ -123,6 +123,28 @@ class TestBond:
         cps, ams = b.payments_since_date(date(2018, 5, 8))
         assert cps == [coupons[1]]
         assert ams == [amortizations[1]]
+
+    def test_ytm(self):
+        coup1_start_date = date(2017, 3, 20)
+        coup1_date = date(2018, 3, 20)
+        coup2_start_date = date(2018, 3, 21)
+        coup2_date = date(2019, 3, 20)
+        coupons = [CouponScheduleEntry(coup1_date, None, coup1_start_date, 100.0, 0.0),
+                   CouponScheduleEntry(coup2_date, None, coup2_start_date, 100.0, 0.0)]
+        amortizations = [AmortizationScheduleEntry(coup2_date, 100.0, 1000.0)]
+        b = Bond(coupons=coupons, amortizations=amortizations)
+        # assume we buy slightly after last coupon period start
+        buy_price = 103.0
+        buy_date = date(2018, 5, 20)
+        ytm = b.yield_to_maturity(buy_price, buy_date, date(2018, 5, 21))
+        assert ytm == pytest.approx(0.0821)
+        # assert ytm definition holds
+        yf = ((coup2_date - buy_date).days / YEAR_BASE)
+        accrued = b.accrued_coupon_on_date(buy_date)
+        fv_initial_investment = (buy_price * 10 + accrued) * (1.0 + ytm) ** yf
+        # no need to accrue since they already are on correct date
+        fv_payments = coupons[1].value + amortizations[0].value
+        assert fv_initial_investment == pytest.approx(fv_payments, rel=5E-5)
 
 
 class TestOHLC:
@@ -235,15 +257,43 @@ class TestOHLCSeries:
             series.mean_of_last_elems(5)
 
 
-class TestMovingAvg:
-    def test_simple(self):
-        elems = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
-        window = 2
-        avgs = [None, (elems[0] + elems[1]) / window, (elems[1] + elems[2]) / window, (elems[2] + elems[3]) / window,
-                (elems[3] + elems[4]) / window, (elems[4] + elems[5]) / window]
-        calc = MovingAvgCalculator(window)
-        for idx, elem in enumerate(elems):
-            calc.add(elem)
-            expected_avg = avgs[idx]
-            assert calc.avg() == expected_avg
+class TestCashFlows:
+    def test_irr_no_outflows_or_inflows(self):
+        with pytest.raises(ValueError):
+            CashFlows([
+                CashFlow(date(2021, 3, 20), 100.0),
+                CashFlow(date(2022, 3, 20), 100.0)
+            ])
+        with pytest.raises(ValueError):
+            CashFlows([
+                CashFlow(date(2021, 3, 20), -100.0),
+                CashFlow(date(2022, 3, 20), -100.0)
+            ])
 
+    def test_irr_degenerate(self):
+        flows = CashFlows([
+            CashFlow(date(2021, 3, 20), -100.0),
+            CashFlow(date(2022, 3, 20), 100.0)
+        ])
+        assert flows.irr() == 0.0
+
+    def test_irr_simple(self):
+        flows = CashFlows([
+            CashFlow(date(2021, 3, 20), -100.0),
+            CashFlow(date(2022, 3, 20), 110.0)
+        ])
+        assert flows.irr() == pytest.approx(0.1)
+
+    def test_irr_means_yearly_compounded(self):
+        flows = CashFlows([
+            CashFlow(date(2021, 3, 20), -100.0),
+            # irr internally uses yearly compounded discounting so such flow should lead to irr 10%
+            CashFlow(date(2023, 3, 20), 100.0 * (1 + 0.1) ** 2)
+        ])
+        assert flows.irr() == pytest.approx(0.1)
+        flows = CashFlows([
+            CashFlow(date(2021, 3, 20), -100.0),
+            # while if we receive dividends in simple compounding, it would lead to lower effective irr
+            CashFlow(date(2023, 3, 20), 100.0 * (1 + 2 * 0.1))
+        ])
+        assert flows.irr() == pytest.approx(0.0954451)

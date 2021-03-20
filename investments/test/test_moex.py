@@ -52,10 +52,78 @@ class TestMoex:
         # assert our calculations match those from exchange
         for coupon in bond.coupons:
             try:
-                assert coupon.value == bond.coupon_on_date(coupon.coupon_date)
+                assert coupon.value == bond.accrued_coupon_on_date(coupon.coupon_date)
             except:
                 print(coupon)
                 raise
+
+    def test_ytm1(self, sample_bond_xml: str):
+        bond = m.parse_coupon_schedule_xml(sample_bond_xml)
+        buy_date = date(2020, 7, 28)
+        settle_date = date(2020, 7, 29)
+        assert bond.notional_on_date(settle_date) == 700.0
+        accrued_coupon_moex = 642.06 / 54  # =11.89
+        # moex calculator & calculation standards:
+        # https://www.moex.com/ru/bondization/calc
+        #
+        # note for some dates it's buy_date, for some (see next example) it's settle date...
+        # but if you read emission doc for the bond, it explicitly says we should use buy_date:
+        # http://st.finam.ru/ipo/decision/7684_0_%D1%80%D0%B5%D1%88%D0%B5%D0%BD%D0%B8%D0%B5%20%D0%BE%D0%B1%20%D1%8D%D0%BC%D0%B8%D1%81%D1%81%D0%B8%D0%B8_2016.PDF
+        # (point 3.12)
+        assert bond.accrued_coupon_on_date(buy_date) == pytest.approx(accrued_coupon_moex, rel=1E-3)
+        ytm = bond.yield_to_maturity(103.51, buy_date, settle_date, accrued_coupon=accrued_coupon_moex)
+        # corresponds to real MOEX ytm on that date for the bond
+        moex_calc_value = 0.0640
+        assert ytm == 0.0642
+        assert ytm == pytest.approx(moex_calc_value, rel=1E-2)
+        ytm_tax = bond.yield_to_maturity(103.51, buy_date, settle_date, accrued_coupon=accrued_coupon_moex,
+                                         coupon_tax_prc=0.13)
+        # tax bring rate down 186 points!
+        assert ytm_tax == pytest.approx(0.0456, rel=1E-3)
+        ytm_tax_comm = bond.yield_to_maturity(103.51, buy_date, settle_date, accrued_coupon=accrued_coupon_moex,
+                                              coupon_tax_prc=0.13, commission=0.5253)
+        # commission brings further 12 points down
+        assert ytm_tax_comm == pytest.approx(0.0444, rel=1E-3)
+
+    def test_ytm2(self, sample_bond_xml: str):
+        bond = m.parse_coupon_schedule_xml(sample_bond_xml)
+        buy_date = date(2020, 8, 10)
+        settle_date = date(2020, 8, 11)
+        accrued_coupon_moex = 811.62 / 54  # =15.03
+        # note it matches with moex only if you use settle_date.
+        # but if you read emission doc for the bond, it explicitly says we should use buy_date:
+        # http://st.finam.ru/ipo/decision/7684_0_%D1%80%D0%B5%D1%88%D0%B5%D0%BD%D0%B8%D0%B5%20%D0%BE%D0%B1%20%D1%8D%D0%BC%D0%B8%D1%81%D1%81%D0%B8%D0%B8_2016.PDF
+        # (point 3.12)
+        # so looks like moex error
+        assert bond.accrued_coupon_on_date(settle_date) == accrued_coupon_moex
+        ytm = bond.yield_to_maturity(103.34, buy_date, settle_date,
+                                     accrued_coupon=accrued_coupon_moex)
+        moex_calc_value = 0.0635
+        assert ytm == pytest.approx(moex_calc_value)
+        assert ytm == 0.0635
+        ytm_tax = bond.yield_to_maturity(103.34, buy_date, settle_date, accrued_coupon=accrued_coupon_moex,
+                                         coupon_tax_prc=0.13)
+        assert ytm_tax == pytest.approx(0.0438, rel=1E-3)
+
+    def test_ytm3(self, sample_bond_xml: str):
+        bond = m.parse_coupon_schedule_xml(sample_bond_xml)
+        buy_date = date(2020, 8, 24)
+        settle_date = date(2020, 8, 25)
+        accrued_coupon_moex = 781.74 / 43  # =18.18
+        # note it matches with moex only if you use settle_date.
+        # but if you read emission doc for the bond, it explicitly says we should use buy_date:
+        # http://st.finam.ru/ipo/decision/7684_0_%D1%80%D0%B5%D1%88%D0%B5%D0%BD%D0%B8%D0%B5%20%D0%BE%D0%B1%20%D1%8D%D0%BC%D0%B8%D1%81%D1%81%D0%B8%D0%B8_2016.PDF
+        # (point 3.12)
+        # so looks like moex error
+        assert bond.accrued_coupon_on_date(settle_date) == accrued_coupon_moex
+        ytm = bond.yield_to_maturity(103.2, buy_date, settle_date,
+                                     accrued_coupon=accrued_coupon_moex)
+        moex_calc_value = 0.0624
+        assert ytm == pytest.approx(moex_calc_value)
+        assert ytm == pytest.approx(0.0624, rel=1E-15)
+        ytm_tax = bond.yield_to_maturity(103.2, buy_date, settle_date, accrued_coupon=accrued_coupon_moex,
+                                         coupon_tax_prc=0.13)
+        assert ytm_tax == pytest.approx(0.0415, rel=1E-3)
 
 
 @pytest.fixture()
