@@ -15,6 +15,7 @@ from investments.instruments import Bond, AmortizationScheduleEntry, CouponSched
 ISS_URL = "https://iss.moex.com/iss/"
 logger = logging.getLogger(__name__)
 one_day = datetime.timedelta(days=1)
+http_params = {"timeout": 5}
 
 
 def load_coupon_schedule_xml(isin: str) -> str:
@@ -130,7 +131,7 @@ class Instrument(ABC):
         url = f"{ISS_URL}history/{exchange_coords}/securities/{self.code}/candleborders.csv{fr}"
 
         # will return not more than 100 entries from the beginning of history
-        reply = requests.get(url).text
+        reply = requests.get(url, **http_params).text
         return self._parse_ohlc_csv(reply)
 
     def load_ohlc_table(self, from_date: Optional[datetime.date] = None,
@@ -190,7 +191,7 @@ class Instrument(ABC):
     def load_intraday_quotes(self) -> IntradayQuote:
         exchange_coords = self.get_exchange_coords()
         url = f"{ISS_URL}{exchange_coords}/securities/{self.code}.xml?iss.meta=off"
-        data = requests.get(url)
+        data = requests.get(url, **http_params)
         return self._parse_intraday_quotes(data.text)
 
 
