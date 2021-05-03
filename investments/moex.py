@@ -15,7 +15,7 @@ from investments.instruments import Bond, AmortizationScheduleEntry, CouponSched
 ISS_URL = "https://iss.moex.com/iss/"
 logger = logging.getLogger(__name__)
 one_day = datetime.timedelta(days=1)
-http_params = {"timeout": 5}
+http_params = {"timeout": 10}
 
 
 def load_coupon_schedule_xml(isin: str) -> str:
