@@ -190,6 +190,7 @@ class Ticker:
                 logger.info(f"Trading day switched for {instr}, resetting intraday averager")
                 intraday_state.moving_avg = MovingAvgCalculator(self.intraday_window_size)
             intraday_state.time_of_last_trade = time_of_last_trade
+            # TODO: add only if time of last trade differs, to track only deals, not ticks
             intraday_state.moving_avg.add(quote.last)
 
             hist_mean = ser.mean_of_last_elems(self.hist_window_size)
