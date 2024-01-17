@@ -113,6 +113,11 @@ def main():
     assert fsm_substring_empty.accepts("").passed  # "" contains ""
     assert fsm_substring_empty.accepts("Ilya").passed  # "Ilya" contains ""
 
+    fsm_substring = generate_fsm_for_substring_search("issip")
+    #example of why this FSM is wrong approach, we need more clever FSM or naive backtracking (but in this case it won't be better than brute force approach)
+    #(see example of naive backtracking in https://github.com/ipalopezhentsev/leetcode-solutions/blob/main/lib/src/main/java/leetcode/solutions/IndexOfSubstringFsmNonOptimal.java )
+    assert fsm_substring.accepts("mississippi").passed
+
 
 if __name__ == "__main__":
     main()
